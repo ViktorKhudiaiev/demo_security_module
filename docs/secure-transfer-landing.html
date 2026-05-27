@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Secure Transfer Demo</title>
+  <style>
+    :root {
+      --ink: #13213a;
+      --muted: #5f6f89;
+      --line: #dce4f2;
+      --paper: #f8faff;
+      --card: #ffffff;
+      --blue: #1f66ff;
+      --green: #15935f;
+      --red: #bf3434;
+      --soft-blue: #eaf1ff;
+      --soft-green: #eaf8f1;
+      --soft-red: #fff0f0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Arial", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 16% 0%, #dce8ff 0, transparent 34%),
+        linear-gradient(180deg, #f7f9ff 0%, #ffffff 44%, #f8faff 100%);
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 46px 22px 60px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 440px;
+      gap: 34px;
+      align-items: center;
+      min-height: 470px;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: 52px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .button.primary {
+      border-color: var(--blue);
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 38px rgba(25, 44, 86, .10);
+      padding: 22px;
+    }
+
+    .flow {
+      display: grid;
+      gap: 14px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 6px 10px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag.blue {
+      background: var(--soft-blue);
+      color: #1f4fb9;
+    }
+
+    .tag.green {
+      background: var(--soft-green);
+      color: #087548;
+    }
+
+    .tag.red {
+      background: var(--soft-red);
+      color: #a12525;
+    }
+
+    .flow-row p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    section {
+      margin-top: 28px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .section-lead {
+      max-width: 820px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .card p {
+      margin: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .lane {
+      min-height: 252px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .lane h3 {
+      margin: 0 0 14px;
+      font-size: 17px;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      margin: 10px 0;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 13px;
+      margin-left: 12px;
+    }
+
+    .footer-note {
+      margin-top: 34px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .callout {
+      border-left: 4px solid var(--blue);
+      background: #f3f7ff;
+      border-radius: 8px;
+      padding: 16px 18px;
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .grid-2,
+      .grid-3,
+      .architecture,
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Business-critical transaction protection</p>
+        <h1>Make financial records trustworthy after they enter the database.</h1>
+        <p class="lead">
+          Secure Transfer Demo shows how a business can detect silent changes to transaction data before money movement is finalized. The goal is simple: if amount, sender, receiver, or timing is changed behind the scenes, the system should notice and stop the flow.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="./transaction-security-visual-workflow.html">See the workflow</a>
+          <a class="button" href="./DEMO_PRESENTATION.md">Read the business/technical pack</a>
+          <a class="button" href="../README.md">Open README</a>
+        </div>
+      </div>
+
+      <aside class="panel">
+        <div class="flow">
+          <div class="flow-row">
+            <span class="tag blue">Risk</span>
+            <p>A database row can be changed after a transaction is created: amount, destination, status, or receiver.</p>
+          </div>
+          <div class="flow-row">
+            <span class="tag blue">Proof</span>
+            <p>The transaction receives an integrity fingerprint when it is created.</p>
+          </div>
+          <div class="flow-row">
+            <span class="tag green">Check</span>
+            <p>A separate validation path checks the fingerprint before final processing.</p>
+          </div>
+          <div class="flow-row">
+            <span class="tag red">Action</span>
+            <p>If data was changed, the transfer becomes suspicious and both accounts can be blocked.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section>
+      <h2>The Business Problem</h2>
+      <p class="section-lead">Most systems protect the API layer, but business risk does not stop there. If a privileged user, compromised script, or direct database access changes a transaction record, the application may continue as if everything is normal.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Wrong money movement</h3>
+          <p>A changed amount or receiver can create direct financial exposure.</p>
+        </article>
+        <article class="card">
+          <h3>Weak incident response</h3>
+          <p>If status is overwritten in place, it is harder to prove what happened and when.</p>
+        </article>
+        <article class="card">
+          <h3>Trust damage</h3>
+          <p>Customers and partners expect sensitive operations to be traceable and defensible.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Who It Helps</h2>
+      <p class="section-lead">This pattern is useful anywhere a transaction-like record must remain reliable after the first write.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Fintech and payment teams</h3>
+          <p>Transfers, payouts, wallet movements, internal ledgers, and payment operations where tampering must be detected before completion.</p>
+        </article>
+        <article class="card">
+          <h3>Marketplaces and platforms</h3>
+          <p>Buyer-seller flows, escrow-like operations, refunds, credits, or partner payouts where transaction trust matters.</p>
+        </article>
+        <article class="card">
+          <h3>Enterprise operations</h3>
+          <p>Approvals, credits, loyalty points, high-value internal records, or other flows that behave like money inside the business.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>What The Solution Gives The Business</h2>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Tamper detection</h3>
+          <p>The system can detect when key transaction fields no longer match the original trusted request.</p>
+        </article>
+        <article class="card">
+          <h3>Audit-ready history</h3>
+          <p>The original transaction remains unchanged, while every processing state is recorded as history.</p>
+        </article>
+        <article class="card">
+          <h3>Controlled response</h3>
+          <p>Suspicious transfers can be stopped, accounts can be blocked, and teams can investigate from a clear trail.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>How It Works In Plain Terms</h2>
+      <div class="steps">
+        <article class="step">
+          <strong>1. Create</strong>
+          <p>A customer or system requests a transaction: from whom, to whom, how much, and when.</p>
+        </article>
+        <article class="step">
+          <strong>2. Fingerprint</strong>
+          <p>The system creates a protected fingerprint for those exact transaction facts.</p>
+        </article>
+        <article class="step">
+          <strong>3. Validate</strong>
+          <p>A separate security process checks the fingerprint before the transaction is finalized.</p>
+        </article>
+        <article class="step">
+          <strong>4. Decide</strong>
+          <p>If everything matches, processing continues. If not, the system records a suspicious event and can block accounts.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Demo Packaging vs Production Target</h2>
+      <p class="section-lead">The repository is intentionally easy to run locally. The business architecture is designed so the same boundaries can become independent cloud services in production.</p>
+      <div class="architecture">
+        <div class="lane">
+          <h3>Current Demo</h3>
+          <div class="box">One Spring Boot application</div>
+          <div class="arrow">contains</div>
+          <div class="box">account-transfer-app</div>
+          <div class="box">tokenization-module</div>
+          <div class="box">transaction-security-module</div>
+          <div class="arrow">uses H2 + in-memory queue boundary</div>
+        </div>
+        <div class="lane">
+          <h3>Production Target</h3>
+          <div class="box">account-transfer-service</div>
+          <div class="box">tokenization-service</div>
+          <div class="box">transaction-security-service</div>
+          <div class="arrow">deployed independently</div>
+          <div class="box">Cloud database + ActiveMQ/RabbitMQ/Kafka</div>
+          <div class="arrow">with service auth, secrets, observability, role separation</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What To Review Next</h2>
+      <p class="section-lead">The landing page explains the business value. The supporting materials show how the implementation works and how it maps to a production deployment.</p>
+      <div class="grid-3">
+        <article class="card">
+          <h3>Workflow diagrams</h3>
+          <p>Use the visual workflow page to compare the standard flow and the protected flow.</p>
+        </article>
+        <article class="card">
+          <h3>Demo pack</h3>
+          <p>Use the presentation pack for architecture, sequence, domain model, and demo script.</p>
+        </article>
+        <article class="card">
+          <h3>Source code</h3>
+          <p>Use the README to run the demo locally and inspect the module boundaries.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="callout">
+      Secure Transfer Demo is not a full payment platform. It is a compact proof-of-concept for one high-value business capability: detecting and responding to transaction data tampering before final processing.
+    </div>
+  </main>
+</body>
+</html>

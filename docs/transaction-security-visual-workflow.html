@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transaction Security Workflow</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --ink: #16233b;
+      --muted: #5d6b86;
+      --accent: #1f66ff;
+      --ok: #109d57;
+      --warn: #c35a11;
+      --bad: #c12f2f;
+      --card: #ffffff;
+      --line: #d9e0ee;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Arial", sans-serif;
+      background: linear-gradient(180deg, #eef3ff 0%, var(--bg) 30%, #f9fbff 100%);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { margin: 0 0 8px; font-size: 36px; }
+    p.lead { margin: 0 0 28px; color: var(--muted); font-size: 18px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: 0 8px 26px rgba(25, 44, 86, 0.08);
+    }
+    h2 { margin: 0 0 10px; font-size: 20px; }
+    .meta { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+    svg { width: 100%; height: auto; display: block; }
+    .box { fill: #fff; stroke: #b7c3db; stroke-width: 1.5; rx: 8; }
+    .title { font-size: 14px; fill: var(--ink); font-weight: 700; }
+    .sub { font-size: 12px; fill: var(--muted); }
+    .line { stroke: #6e7f9f; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    .accent { stroke: var(--accent); }
+    .ok { stroke: var(--ok); }
+    .warn { stroke: var(--warn); }
+    .bad { stroke: var(--bad); }
+    .pill { fill: #eaf1ff; stroke: #c3d5ff; }
+    .pilltext { font-size: 11px; fill: #1e4fb8; font-weight: 700; }
+    .small { font-size: 11px; fill: #5f6f8f; }
+    .tiny { font-size: 9px; fill: #5f6f8f; }
+    @media (min-width: 980px) {
+      .grid.two { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Transaction Security Workflow</h1>
+    <p class="lead">Visual map of how transfers work in a standard system vs. the protected append-only architecture.</p>
+
+    <div class="grid" style="margin-top:20px">
+      <section class="card">
+        <h2>1) BEFORE: Table + Structure</h2>
+        <svg viewBox="0 0 540 520" aria-label="before table and structure">
+          <rect class="box" x="14" y="14" width="512" height="176"></rect>
+          <text class="title" x="28" y="36">transactions</text>
+          <line x1="26" y1="48" x2="520" y2="48" stroke="#cfd8ea"></line>
+          <text class="small" x="28" y="66">from</text><text class="small" x="112" y="66">to</text><text class="small" x="188" y="66">amount</text><text class="small" x="270" y="66">created_at</text><text class="small" x="430" y="66">status</text>
+          <line x1="26" y1="74" x2="520" y2="74" stroke="#e3e9f4"></line>
+          <text class="small" x="28" y="92">account_1</text><text class="small" x="112" y="92">account_2</text><text class="small" x="188" y="92">$10.00</text><text class="small" x="270" y="92">2026-05-26 12:10:00</text><text class="small" x="430" y="92">PENDING</text>
+          <line x1="26" y1="100" x2="520" y2="100" stroke="#e3e9f4"></line>
+          <text class="small" x="28" y="118">account_1</text><text class="small" x="112" y="118">account_2</text><text class="small" x="188" y="118">$10.00</text><text class="small" x="270" y="118">2026-05-26 12:10:00</text><text class="small" x="430" y="118">COMPLETED</text>
+          <text class="small" x="28" y="152">Risk: data can be changed in place, no trusted security event trail.</text>
+          <defs>
+            <marker id="flowArrowB" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="#6e7f9f"></path>
+            </marker>
+          </defs>
+          <rect class="box" x="36" y="254" width="78" height="44"></rect><text class="small" x="62" y="281">User</text>
+          <rect class="box" x="222" y="254" width="104" height="44"></rect><text class="small" x="244" y="281">Main Module</text>
+          <ellipse cx="470" cy="248" rx="50" ry="14" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></ellipse>
+          <rect x="420" y="248" width="100" height="80" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></rect>
+          <ellipse cx="470" cy="328" rx="50" ry="14" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></ellipse>
+          <text class="small" x="456" y="291">DB</text>
+          <line x1="114" y1="276" x2="222" y2="276" stroke="#1f66ff" stroke-width="1.8" marker-end="url(#flowArrowB)"></line>
+          <text class="tiny" x="124" y="267">1) request(from,to,amount)</text>
+          <line x1="326" y1="276" x2="420" y2="276" stroke="#1f66ff" stroke-width="1.8" marker-end="url(#flowArrowB)"></line>
+          <text class="tiny" x="344" y="267">2) create transaction</text>
+          <line x1="260" y1="354" x2="420" y2="310" stroke="#c12f2f" stroke-width="2" marker-end="url(#flowArrowB)"></line>
+          <text class="small" x="262" y="348">3) tamper reaches DB, no tracking layer</text>
+        </svg>
+      </section>
+    </div>
+
+    <div class="grid" style="margin-top:20px">
+      <section class="card">
+        <h2>2) AFTER: Table + Structure (8 Steps)</h2>
+        <svg viewBox="0 0 1120 640" aria-label="after table and structure">
+          <rect class="box" x="16" y="14" width="540" height="160"></rect>
+          <text class="title" x="30" y="36">transactions (append-only)</text>
+          <line x1="28" y1="46" x2="548" y2="46" stroke="#cfd8ea"></line>
+          <text class="small" x="30" y="64">from</text><text class="small" x="112" y="64">to</text><text class="small" x="182" y="64">amount</text><text class="small" x="264" y="64">created_at</text><text class="small" x="420" y="64">status</text><text class="small" x="488" y="64">token</text>
+          <line x1="28" y1="72" x2="548" y2="72" stroke="#e3e9f4"></line>
+          <text class="small" x="30" y="90">account_1</text><text class="small" x="112" y="90">account_2</text><text class="small" x="182" y="90">$10.00</text><text class="small" x="264" y="90">2026-05-26 12:10:00</text><text class="small" x="420" y="90">PENDING</text><text class="small" x="488" y="90">a8f1...4b</text>
+
+          <rect class="box" x="576" y="14" width="528" height="160"></rect>
+          <text class="title" x="590" y="36">transaction_status_events</text>
+          <line x1="588" y1="46" x2="1096" y2="46" stroke="#cfd8ea"></line>
+          <text class="small" x="590" y="64">transaction_id</text><text class="small" x="730" y="64">status</text><text class="small" x="828" y="64">created_at</text><text class="small" x="978" y="64">reason</text>
+          <line x1="588" y1="72" x2="1096" y2="72" stroke="#e3e9f4"></line>
+          <text class="small" x="590" y="90">tx_101</text><text class="small" x="730" y="90">IN_PROGRESS</text><text class="small" x="828" y="90">2026-05-26 12:10:02</text><text class="small" x="978" y="90">null</text>
+          <line x1="588" y1="98" x2="1096" y2="98" stroke="#e3e9f4"></line>
+          <text class="small" x="590" y="116">tx_101</text><text class="small" x="730" y="116">COMPLETED</text><text class="small" x="828" y="116">2026-05-26 12:10:03</text><text class="small" x="978" y="116">null</text>
+
+          <defs>
+            <marker id="flowArrowA" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="#1f66ff"></path>
+            </marker>
+            <marker id="flowArrowAGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="#109d57"></path>
+            </marker>
+          </defs>
+
+          <rect class="box" x="40" y="340" width="84" height="48"></rect>
+          <text class="small" x="72" y="370">User</text>
+          <rect class="box" x="330" y="340" width="108" height="48"></rect>
+          <text class="small" x="348" y="370">Main Module</text>
+          <rect class="box" x="470" y="220" width="188" height="56"></rect>
+          <text class="small" x="530" y="253">Tokenization</text>
+
+          <ellipse cx="930" cy="274" rx="90" ry="18" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></ellipse>
+          <rect x="840" y="274" width="180" height="250" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></rect>
+          <ellipse cx="930" cy="524" rx="90" ry="18" fill="#fff" stroke="#b7c3db" stroke-width="1.5"></ellipse>
+          <text class="small" x="915" y="406">DB</text>
+
+          <rect class="box" x="470" y="530" width="188" height="56"></rect>
+          <text class="small" x="536" y="563">Security</text>
+
+          <line x1="124" y1="364" x2="330" y2="364" stroke="#1f66ff" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowA)"></line>
+          <text class="small" x="150" y="354">1) request(from,to,amount)</text>
+
+          <line x1="366" y1="340" x2="470" y2="255" stroke="#1f66ff" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowA)"></line>
+          <text class="small" x="250" y="306">2) createToken(from,to,amount,time)</text>
+
+          <line x1="542" y1="276" x2="438" y2="361" stroke="#1f66ff" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowA)"></line>
+          <text class="small" x="470" y="326">3) response(tokenString)</text>
+
+          <line x1="438" y1="364" x2="840" y2="364" stroke="#1f66ff" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowA)"></line>
+          <text class="small" x="620" y="354">4) write transaction + token</text>
+
+          <line x1="840" y1="450" x2="658" y2="550" stroke="#109d57" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowAGreen)"></line>
+          <text class="small" x="640" y="492">5) trigger -> security event</text>
+
+          <line x1="520" y1="530" x2="520" y2="276" stroke="#109d57" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowAGreen)"></line>
+          <text class="small" x="388" y="452">6) security -> tokenization</text>
+
+          <line x1="580" y1="276" x2="580" y2="530" stroke="#109d57" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowAGreen)"></line>
+          <text class="small" x="588" y="426">7) tokenization -> security</text>
+
+          <line x1="658" y1="580" x2="840" y2="480" stroke="#109d57" stroke-opacity="0.72" stroke-width="2.4" marker-end="url(#flowArrowAGreen)"></line>
+          <text class="small" x="690" y="572">8) write status_events row</text>
+        </svg>
+      </section>
+    </div>
+
+    <div class="grid two" style="margin-top:20px">
+      <section class="card">
+        <h2>3) UML Sequence Diagram (BEFORE)</h2>
+        <svg viewBox="0 0 540 310" aria-label="uml before sequence">
+          <defs>
+            <marker id="umlArrowBefore" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="#6e7f9f"></path>
+            </marker>
+          </defs>
+          <rect class="box" x="18" y="16" width="90" height="28"></rect>
+          <text class="small" x="47" y="34">User</text>
+          <rect class="box" x="160" y="16" width="150" height="28"></rect>
+          <text class="small" x="186" y="34">Main Module</text>
+          <rect class="box" x="350" y="16" width="130" height="28"></rect>
+          <text class="small" x="390" y="34">Database</text>
+          <line x1="63" y1="44" x2="63" y2="245" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="235" y1="44" x2="235" y2="245" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="415" y1="44" x2="415" y2="245" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="63" y1="78" x2="235" y2="78" stroke="#1f66ff" stroke-width="2" marker-end="url(#umlArrowBefore)"></line>
+          <text class="small" x="84" y="70">1) createTransfer(from,to,amount)</text>
+          <line x1="235" y1="112" x2="415" y2="112" stroke="#1f66ff" stroke-width="2" marker-end="url(#umlArrowBefore)"></line>
+          <text class="small" x="265" y="104">2) INSERT/UPDATE transactions</text>
+          <line x1="235" y1="146" x2="63" y2="146" stroke="#6e7f9f" stroke-width="2" marker-end="url(#umlArrowBefore)"></line>
+          <text class="small" x="99" y="138">3) response</text>
+          <line x1="500" y1="112" x2="415" y2="112" stroke="#c12f2f" stroke-width="2" marker-end="url(#umlArrowBefore)"></line>
+          <text class="small" x="426" y="103">intrusion / tamper</text>
+          <line x1="415" y1="180" x2="235" y2="180" stroke="#c12f2f" stroke-width="2" marker-end="url(#umlArrowBefore)"></line>
+          <text class="small" x="262" y="172">silent data change (undetected)</text>
+          <text class="small" x="20" y="270">No trigger-based async verification.</text>
+          <text class="small" x="20" y="286">If DB is tampered, there is no reliable tracking layer.</text>
+        </svg>
+      </section>
+    </div>
+
+    <div class="grid" style="margin-top:20px">
+      <section class="card">
+        <h2>4) UML Sequence Diagram (AFTER)</h2>
+        <p class="meta">Request flow + async validation flow with `alt` branches.</p>
+        <svg viewBox="0 0 1120 560" aria-label="uml sequence diagram">
+          <defs>
+            <marker id="umlArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+              <path d="M0,0 L10,3 L0,6 z" fill="#6e7f9f"></path>
+            </marker>
+          </defs>
+
+          <rect class="box" x="20" y="20" width="130" height="34"></rect>
+          <text class="sub" x="48" y="42">User</text>
+          <rect class="box" x="190" y="20" width="170" height="34"></rect>
+          <text class="sub" x="212" y="42">Main Module</text>
+          <rect class="box" x="400" y="20" width="190" height="34"></rect>
+          <text class="sub" x="425" y="42">Tokenization Module</text>
+          <rect class="box" x="630" y="20" width="140" height="34"></rect>
+          <text class="sub" x="670" y="42">Database</text>
+          <rect class="box" x="810" y="20" width="160" height="34"></rect>
+          <text class="sub" x="840" y="42">Security Module</text>
+
+          <line x1="85" y1="54" x2="85" y2="530" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="275" y1="54" x2="275" y2="530" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="495" y1="54" x2="495" y2="530" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="700" y1="54" x2="700" y2="530" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+          <line x1="890" y1="54" x2="890" y2="530" stroke="#9ba9c2" stroke-dasharray="6 6"></line>
+
+          <line x1="85" y1="90" x2="275" y2="90" class="line accent" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="115" y="84">1) POST /transfers</text>
+          <line x1="275" y1="120" x2="495" y2="120" class="line accent" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="320" y="114">2) generateToken(payload)</text>
+          <line x1="495" y1="150" x2="275" y2="150" class="line" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="340" y="144">3) token</text>
+          <line x1="275" y1="180" x2="700" y2="180" class="line accent" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="390" y="174">4) INSERT transaction + token</text>
+          <line x1="275" y1="210" x2="85" y2="210" class="line" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="122" y="204">5) 202 Accepted</text>
+
+          <line x1="700" y1="250" x2="890" y2="250" class="line ok" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="735" y="244">6) DB trigger -> outbox event</text>
+          <line x1="890" y1="280" x2="700" y2="280" class="line ok" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="742" y="274">7) read transaction</text>
+          <line x1="890" y1="310" x2="495" y2="310" class="line ok" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="640" y="304">8) generateToken(payload)</text>
+          <line x1="495" y1="340" x2="890" y2="340" class="line ok" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="648" y="334">9) expected token</text>
+
+          <rect x="760" y="370" width="310" height="140" fill="none" stroke="#8ea0c2" stroke-width="1.2"></rect>
+          <text class="small" x="772" y="388">alt token comparison</text>
+
+          <line x1="890" y1="415" x2="700" y2="415" class="line ok" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="735" y="409">[match] write status: in_progress/completed</text>
+
+          <line x1="890" y1="455" x2="700" y2="455" class="line bad" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="732" y="449">[mismatch] write suspicious + failure_reason</text>
+          <line x1="890" y1="485" x2="275" y2="485" class="line bad" style="marker-end:url(#umlArrow)"></line>
+          <text class="small" x="560" y="479">block source/target accounts</text>
+        </svg>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
