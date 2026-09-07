@@ -1,182 +1,67 @@
-# Secure Transfer Demo
+# Record Integrity
 
-Minimal Java/Spring Boot multi-module demo for secure account-to-account transfers with transaction integrity validation.
+Authenticated PostgreSQL operations, independent evidence and protected execution. All funds are simulated; no real payments.
 
-This repository is packaged as one runnable demo application to make review and local execution simple. The module boundaries are intentionally aligned with a production target where each module can become an independently deployed service.
+## Open the documentation — no installation or server
 
-## Quick overview
+**Open [docs/index.html](docs/index.html) in a web browser.** After cloning or downloading this repository, double-click that file or use the browser's Open File command. The overview, architecture, sequence, terms and recorded evidence are embedded in the page. Java, Docker, Node.js and Internet access are not required to read it.
 
-For a short non-technical overview, open:
+GitHub displays HTML source instead of running the page. Download the repository or [documentation ZIP](docs/downloads/demo-materials.zip), extract it, and open `docs/index.html` locally. Keep the complete `docs` folder together for companion links.
 
-- `docs/secure-transfer-landing.html`
+- [Article](docs/article/index.html) · [PDF](docs/article/article.pdf)
+- [PowerPoint](docs/presentation/demo.pptx) · [Presenter guide](docs/presentation/guide.html) · [Speaker notes](docs/presentation/notes.md)
+- [Architecture and acceptance criteria](docs/reference/architecture.md)
+- [Protocol](docs/reference/protocol.md) · [Glossary](docs/reference/glossary.md)
+- [Final recorded verification](docs/evidence/local-verification-2026-09-06-final.json)
 
-For visual workflow diagrams, open:
+The diagrams and results are a static explanation, not a live connection to a database. External RFC/vendor links need Internet only when opened.
 
-- `docs/transaction-security-visual-workflow.html`
-
-## Modules
-
-- `account-transfer-app` - Spring Boot application, REST API, account/ledger/transfer persistence, H2 schema.
-- `tokenization-module` - HMAC-SHA256 token generation over canonical transaction payload.
-- `transaction-security-module` - DB outbox trigger, scheduled outbox publisher, queue boundary, security validation worker, and security ports.
-
-## Package structure
-
-`account-transfer-app` is split by application layer:
+## Repository layout
 
 ```text
-com.demo.securetransfer
-+-- adapter/security  # adapters from app persistence to security-module ports
-+-- controller        # REST endpoints
-+-- domain            # Account, LedgerEntry, Transaction and status/type enums
-+-- dto               # API request/response DTOs
-+-- exception         # API exception mapping
-+-- repository        # DB access through JdbcTemplate
-+-- service           # use cases and DTO mapping
+docs/
+  index.html          Offline customer walkthrough
+  article/            Article source, browser version and PDF
+  presentation/       Deck, guide and speaker notes
+  reference/          Architecture, protocol, requirements and runbook
+  evidence/           Sanitized dated test results
+  history/            Superseded designs and review records
+  downloads/          Portable documentation ZIP
+  live/               Optional live lab page and its local helper
+  build/              Documentation templates, generators and checks
+account-transfer-app/ Trusted application service
+tokenization-module/  Shared protocol and key service
+transaction-security-module/ Integrity processor and embedded broker
+scripts/              Application startup, migration and verification
+.local/               Private runtimes, credentials, keys, backups and build files
 ```
 
-Repositories map database rows into domain models, not API DTOs. DTOs are created in the service layer for controller responses.
+Operational scripts are not presentation materials. Bundled JDK/Maven live in ignored `.local/tools/`; private document renders are in `.local/artifact-qa/`. Never distribute `.local`, `.m2-cache`, IDE state or Maven `target` directories.
 
-`transaction-security-module` follows the same idea:
+## Optional live transactions
 
-```text
-com.demo.securetransfer.security
-+-- domain      # security event/view records
-+-- messaging   # queue boundary
-+-- port        # interfaces implemented by the app module
-+-- repository  # outbox DB access
-+-- service     # outbox publisher and validation worker
-+-- trigger     # H2 database trigger
-```
+Reading the documentation does not start services. The separate [Live Lab](docs/live/index.html) explains how to run actual local experiments. This needs Docker Desktop, Java 21, Maven and Node.js 20+. Existing local runtimes are detected automatically; a fresh clone may use installed tools.
 
-`tokenization-module` is intentionally small:
-
-```text
-com.demo.securetransfer.tokenization
-+-- domain
-+-- service
-```
-
-## What is implemented
-
-- Accounts do not store a trusted `amount` field.
-- Balance is calculated from immutable `ledger_entries`.
-- Transfers are stored in append-only `transactions` with an HMAC-SHA256 token.
-- `transactions` is protected from `UPDATE` and `DELETE` by database triggers.
-- Status changes are stored in `transaction_status_events` as immutable events.
-- A database trigger writes pending transactions into `transaction_outbox`.
-- A scheduled security worker reads the outbox, publishes the event into an in-memory queue, recalculates the token, and appends the validation result.
-- If the token does not match, both accounts are blocked and the latest transaction status event becomes `SUSPICIOUS`.
-
-The in-memory queue is intentionally small and replaceable. It represents the ActiveMQ boundary for the demo without requiring a broker installation.
-
-## Demo packaging vs production architecture
-
-The demo runs as a modular monolith:
-
-- one repository,
-- one deployable Spring Boot application,
-- three internal modules,
-- one H2 database,
-- in-memory queue boundary instead of an external broker.
-
-In a production implementation, these boundaries should be deployed as separate services, often in separate repositories:
-
-- `account-transfer-service` - public API, account and transfer orchestration.
-- `tokenization-service` - protected token generation API backed by managed secrets.
-- `transaction-security-service` - asynchronous validation worker and incident handling.
-
-The production version should use cloud-managed infrastructure where appropriate:
-
-- managed database,
-- external broker such as ActiveMQ, RabbitMQ, or Kafka,
-- independently scalable workers,
-- service-level authentication and authorization,
-- separate database users/roles for application writes, validation writes, and read-only access.
-
-The outbox event is intentionally part of the design. A database trigger records the event, and a broker-backed consumer processes events at the capacity available to the security service. For moderate workloads ActiveMQ or RabbitMQ is sufficient; for high-throughput event streams Kafka is a stronger fit.
-
-## Run
+From PowerShell in the repository:
 
 ```powershell
-.\scripts\run.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\live-demo.ps1 -StartStack
 ```
 
-The API starts on:
+Then visit the loopback URL printed by the helper. Valid transfers, direct-primary forgery and retries use dedicated simulated accounts. The file opened from disk cannot execute these actions. Do not expose the helper or service APIs publicly.
 
-```text
-http://localhost:8080
-```
+## Verification and scope
 
-H2 console:
+The current model uses **Main + Audit/Protected PostgreSQL** and persistent ActiveMQ inside the processor JVM. Java calculates transfers; authoritative balances, postings and execution identity remain outside the Main DBA's authority. See the architecture document for the complete threat model and production requirements.
 
-```text
-http://localhost:8080/h2-console
-JDBC URL: jdbc:h2:file:./data/secure-transfer-demo
-User: sa
-Password:
-```
-
-## API examples
-
-Create two accounts:
+The September 6 final run passed 86 Java tests, 15 PostgreSQL scenarios and 2,400 unique completed transfers at 20 offered TPS for 120 seconds, with zero failures and zero configured throughput tolerance. Steady completed throughput was 20.0000 TPS; whole-run throughput was 19.9173 TPS; p95 was 3,057 ms. Missing unpublished receipt detection took 32.96 seconds within the declared 120-second observation budget. These are retained local measurements, not a production SLA.
 
 ```powershell
-$a = Invoke-RestMethod -Method Post http://localhost:8080/api/accounts `
-  -ContentType 'application/json' `
-  -Body '{"name":"Alice","initialBalanceCents":10000}'
-
-$b = Invoke-RestMethod -Method Post http://localhost:8080/api/accounts `
-  -ContentType 'application/json' `
-  -Body '{"name":"Bob","initialBalanceCents":0}'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1 -DurationSeconds 120 -RateTolerance 0
 ```
 
-Create a transfer:
+Run recovery tests separately, never during a benchmark or presentation. Full commands, ownership safeguards, migration and dependency setup are in the [runbook](docs/reference/running.md). Historical evidence remains unchanged.
 
-```powershell
-$body = @{
-  fromAccountId = $a.id
-  toAccountId = $b.id
-  amountCents = 2500
-} | ConvertTo-Json
+## Contributions
 
-Invoke-RestMethod -Method Post http://localhost:8080/api/transfers `
-  -ContentType 'application/json' `
-  -Body $body
-```
-
-Wait one or two seconds, then check balances and the latest transaction status:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/api/accounts
-Invoke-RestMethod http://localhost:8080/api/transfers
-```
-
-## Important design choice
-
-`accounts` has no balance column. The source of truth is `ledger_entries`.
-
-`transactions` is append-only. The row represents the original transfer request and integrity token. Processing state is stored separately in `transaction_status_events`, so status changes do not mutate the original transaction payload.
-
-`transactions.amount_cents` is allowed because it is the amount of a particular transfer, not the current account balance. Money amounts are stored in cents as `BIGINT`, not as floating-point numbers.
-
-The token is not reversible encryption. It is a keyed HMAC signature over stable transaction fields:
-
-- transaction id
-- source account id
-- target account id
-- amount in cents
-- created timestamp
-
-Status is intentionally not included because it changes during processing and is stored in `transaction_status_events`.
-
-## Database integrity model
-
-The demo separates immutable transaction facts from processing state:
-
-- `transactions` stores the original transfer payload and token.
-- `transaction_status_events` stores status history (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`, `SUSPICIOUS`).
-- `transaction_outbox` stores database events emitted after transaction insertion.
-- `ledger_entries` stores immutable debit/credit entries used to derive account balances.
-
-This structure makes the original transaction payload auditable and prevents normal application flow from rewriting transfer facts after creation.
+Read or clone this public repository to study the implementation. Propose changes through a fork and pull request. Public visibility does not grant write access. Changes to `master` require an explicit owner merge through a pull request; direct pushes, force pushes and deletion are blocked by repository rules. See the [contribution and review policy](docs/reference/contributing.md).

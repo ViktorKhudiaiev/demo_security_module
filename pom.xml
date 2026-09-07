@@ -24,5 +24,6 @@
 
     <properties>
         <java.version>21</java.version>
+        <activemq.version>6.3.2</activemq.version>
     </properties>
 </project>

@@ -1,0 +1,25 @@
+server:
+  address: ${KEY_BIND_ADDRESS:127.0.0.1}
+  port: ${KEY_PORT:8081}
+  error:
+    include-message: never
+    include-stacktrace: never
+spring:
+  application:
+    name: integrity-key-service
+  datasource:
+    url: ${AUDIT_URL}
+    username: ${AUDIT_USER}
+    password: ${AUDIT_PASSWORD}
+    hikari:
+      maximum-pool-size: 8
+  sql:
+    init:
+      mode: ${KEY_SCHEMA_INIT:never}
+      schema-locations: classpath:key-schema.sql
+keyservice:
+  directory: ${KEY_DIRECTORY}
+  writer-token: ${KEY_WRITER_TOKEN}
+  verifier-token: ${KEY_VERIFIER_TOKEN}
+  admin-token: ${KEY_ADMIN_TOKEN}
+  signer-token: ${KEY_SIGNER_TOKEN}

@@ -2,3 +2,8 @@ target/
 data/
 tools/
 *.log
+.local/
+.m2-cache/
+tmp/
+__pycache__/
+*.pyc
