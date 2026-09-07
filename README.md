@@ -1,67 +1,148 @@
 # Record Integrity
 
-Authenticated PostgreSQL operations, independent evidence and protected execution. All funds are simulated; no real payments.
+A runnable Java/PostgreSQL demo of authenticated operations, independent evidence and protected execution. It demonstrates how a forged or changed row in a compromised source database can be refused before it changes protected money state. All accounts and funds are simulated; no real payments are made.
 
-## Open the documentation — no installation or server
+This is an engineering integration of established cryptographic and database techniques, not a new cryptographic primitive or a production banking system. It assumes the attacker controls Main/Primary PostgreSQL but not the trusted application, key service, processor, protected database or host.
 
-**Open [docs/index.html](docs/index.html) in a web browser.** After cloning or downloading this repository, double-click that file or use the browser's Open File command. The overview, architecture, sequence, terms and recorded evidence are embedded in the page. Java, Docker, Node.js and Internet access are not required to read it.
+## Read the demo without running anything
 
-GitHub displays HTML source instead of running the page. Download the repository or [documentation ZIP](docs/downloads/demo-materials.zip), extract it, and open `docs/index.html` locally. Keep the complete `docs` folder together for companion links.
+**Open [docs/index.html](docs/index.html) in a web browser.** After cloning or downloading the repository, double-click that file or use the browser's Open File command. The overview, architecture, sequence, terms and recorded evidence work offline. Java, Docker, Node.js and a server are not required to read them.
+
+GitHub displays HTML source rather than executing the page. Download the repository or the [documentation ZIP](docs/downloads/demo-materials.zip), extract it, and open `docs/index.html` locally. Keep the complete `docs` folder together for companion links. The diagrams are explanations, not live database views. External reference links need Internet only when opened.
 
 - [Article](docs/article/index.html) · [PDF](docs/article/article.pdf)
 - [PowerPoint](docs/presentation/demo.pptx) · [Presenter guide](docs/presentation/guide.html) · [Speaker notes](docs/presentation/notes.md)
-- [Architecture and acceptance criteria](docs/reference/architecture.md)
-- [Protocol](docs/reference/protocol.md) · [Glossary](docs/reference/glossary.md)
-- [Final recorded verification](docs/evidence/local-verification-2026-09-06-final.json)
+- [Code structure and reading guide](docs/reference/code-structure.md)
+- [Architecture and acceptance criteria](docs/reference/architecture.md) · [Exact protocol](docs/reference/protocol.md) · [Glossary](docs/reference/glossary.md)
 
-The diagrams and results are a static explanation, not a live connection to a database. External RFC/vendor links need Internet only when opened.
+## What runs in the local demo
 
-## Repository layout
+| Component | Purpose | Local endpoint |
+|---|---|---|
+| Transfer application | Accept requests, obtain authenticated operations, commit source records and outbox hints | `127.0.0.1:8080` |
+| Key service | Issue/verify HMACs, retain independent issuance receipts, rotate keys and sign checkpoints | `127.0.0.1:8081` |
+| Integrity processor | Deliver jobs, verify source content, execute protected accounting and retain audit outcomes | `127.0.0.1:8082` |
+| Main/Primary PostgreSQL | Candidate operations, delivery hints and non-authoritative status projections | `127.0.0.1:55431` |
+| Audit/Protected PostgreSQL | Issuance receipts, audit history, jobs, authoritative balances and postings | `127.0.0.1:55432` |
+| Embedded ActiveMQ Classic | Persistent delivery buffer inside the processor JVM; VM transport only | No broker TCP endpoint |
+| Optional Live Lab helper | Loopback-only browser experiments using the real local stack | `127.0.0.1:8090` |
+
+There are **two physical databases**, not three. The logical accounting connection is still named `settlementDb` and uses its own SQL role in Audit/Protected. Java performs the business calculations; PostgreSQL provides atomic commits, locks, uniqueness and durable storage. Audit/Protected is not merely a passive log: its authoritative money state must stay outside the Main DBA's control for the stated guarantee to hold.
+
+## How a transfer is processed
+
+1. The trusted application validates the request and asks the key service to authenticate the immutable `Operation`. Business-user authorization is an upstream responsibility; the demo uses separated service/API credentials, not a full identity provider.
+2. The key service encodes the versioned payload deterministically, computes HMAC-SHA256 and commits an independent issuance receipt before returning the authenticated envelope. The application never receives the secret key.
+3. One Primary SQL transaction writes `transactions` and `transaction_outbox`. There is no PostgreSQL trigger, notification channel or database call into the security service.
+4. The processor polls outbox hints, publishes persistent UUID messages to embedded ActiveMQ, and acknowledges a source hint only after broker acceptance. Its transacted consumer commits a unique protected SQL job before acknowledging the message.
+5. A worker resolves the independent receipt, compares the source record and verifies its HMAC through the key service. It records verification, then re-reads the source and requires the same checked snapshot before execution.
+6. One protected SQL transaction commits Java-calculated debit/credit postings, balances, the unique execution result and a durable outcome. The relay subsequently appends audit history and projects status into Primary. Duplicate hints or retries do not cause a second financial effect.
+
+Periodic reconciliation also checks for missing issued records and fabricated source rows without delivery hints. Detection is not instantaneous. Audit events are committed to a Merkle tree with signed checkpoints; those checkpoints need independently trusted retention for protection against coordinated rollback of the trusted stores. See [architecture](docs/reference/architecture.md) for acknowledgement gaps, failure behavior and the production boundary.
+
+## Source layout
+
+Each service has responsibility-based packages rather than all classes in one package. Application entry points stay at their service package roots so Spring can discover the child packages.
 
 ```text
-docs/
-  index.html          Offline customer walkthrough
-  article/            Article source, browser version and PDF
-  presentation/       Deck, guide and speaker notes
-  reference/          Architecture, protocol, requirements and runbook
-  evidence/           Sanitized dated test results
-  history/            Superseded designs and review records
-  downloads/          Portable documentation ZIP
-  live/               Optional live lab page and its local helper
-  build/              Documentation templates, generators and checks
-account-transfer-app/ Trusted application service
-tokenization-module/  Shared protocol and key service
-transaction-security-module/ Integrity processor and embedded broker
-scripts/              Application startup, migration and verification
-.local/               Private runtimes, credentials, keys, backups and build files
+account-transfer-app/src/main/java/com/demo/transferapp/
+  TransferApplication.java
+  controller/   HTTP endpoints and response/error mapping
+  dto/          AccountRequest, TransferRequest, FundingRequest
+  service/      Transfer orchestration and source publication
+  client/       Protected processor HTTP client
+  config/       Application wiring
+  security/     API authorization
+
+tokenization-module/src/main/java/com/demo/
+  integrity/
+    model/      Operation, Checkpoint: immutable protocol payloads
+    dto/        Authenticated envelopes, verification and inventory messages
+    crypto/     CanonicalEncoder, CheckpointEncoder
+    client/     IntegrityClient
+  keyservice/
+    KeyServiceApplication.java
+    controller/ service/ config/ security/ vault/ exception/
+
+transaction-security-module/src/main/java/com/demo/securityapp/
+  SecurityApplication.java
+  controller/   Internal HTTP endpoints
+  dto/          Request messages and Merkle proof steps
+  domain/       Protected Account model
+  service/      Verification, accounting, job handling and reconciliation
+  audit/        Ordered audit history, checkpoints and proof assembly
+  crypto/       Merkle tree operations
+  delivery/     Delivery interface and embedded ActiveMQ adapter
+  client/       Key-service gateway
+  config/       Database and delivery wiring
+  security/     Service authorization
+  scheduling/   Periodic processing tasks
+
+docs/           Offline walkthrough, article, presentation and reference material
+  evidence/     Sanitized dated reports, retained unchanged
+  live/         Optional browser lab and its local helper/tests
+  build/        Documentation generators, templates and publication checks
+scripts/        Startup, stop, migration, scenarios and load/recovery verification
+.local/         Ignored local runtimes, credentials, keys, backups and work files
 ```
 
-Operational scripts are not presentation materials. Bundled JDK/Maven live in ignored `.local/tools/`; private document renders are in `.local/artifact-qa/`. Never distribute `.local`, `.m2-cache`, IDE state or Maven `target` directories.
+Transport DTOs are named top-level records in `dto` packages; domain/protocol records are not classified solely by whether they have methods or JSON annotations. This project uses Spring JDBC and explicit SQL schemas, not JPA: an immutable `Operation` is not an ORM entity. The [code structure guide](docs/reference/code-structure.md) explains these distinctions, source entry points, persistence and the remaining deliberately compact implementation.
 
-## Optional live transactions
+## Run the local services and browser lab
 
-Reading the documentation does not start services. The separate [Live Lab](docs/live/index.html) explains how to run actual local experiments. This needs Docker Desktop, Java 21, Maven and Node.js 20+. Existing local runtimes are detected automatically; a fresh clone may use installed tools.
+Requirements: Windows PowerShell, Java 21, Maven, Docker Desktop with Linux containers, and Node.js 20+ for the lab/scenario/load tools. Existing bundled Java/Maven under ignored `.local/tools` are detected; a fresh clone may use installed tools. Node discovery and optional overrides are documented in the [runbook](docs/reference/running.md).
 
 From PowerShell in the repository:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\live-demo.ps1 -StartStack
+# Build/test the Java modules, then start the two databases and three services.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
+
+# Start the optional browser helper after the services are ready.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\live-demo.ps1
 ```
 
-Then visit the loopback URL printed by the helper. Valid transfers, direct-primary forgery and retries use dedicated simulated accounts. The file opened from disk cannot execute these actions. Do not expose the helper or service APIs publicly.
+Keep the helper terminal open and visit [the local Live Lab](http://127.0.0.1:8090/docs/live/index.html). It can prepare dedicated accounts, fund them through the protected path, submit a valid transfer, insert a fabricated Primary row and show the resulting database evidence. Repeated actions retry the same operation identity. The HTML file opened from disk cannot execute these experiments.
 
-## Verification and scope
-
-The current model uses **Main + Audit/Protected PostgreSQL** and persistent ActiveMQ inside the processor JVM. Java calculates transfers; authoritative balances, postings and execution identity remain outside the Main DBA's authority. See the architecture document for the complete threat model and production requirements.
-
-The September 6 final run passed 86 Java tests, 15 PostgreSQL scenarios and 2,400 unique completed transfers at 20 offered TPS for 120 seconds, with zero failures and zero configured throughput tolerance. Steady completed throughput was 20.0000 TPS; whole-run throughput was 19.9173 TPS; p95 was 3,057 ms. Missing unpublished receipt detection took 32.96 seconds within the declared 120-second observation budget. These are retained local measurements, not a production SLA.
+For an already-built checkout, `live-demo.ps1 -StartStack` starts/reuses the stack and opens the same lab workflow. It reuses existing JVM settings, so do not use that shortcut to clear fault hooks from an interrupted test. Do not expose these demo APIs or the lab helper publicly. Do not run fault/recovery/acceptance tests during a presentation.
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1 -DurationSeconds 120 -RateTolerance 0
+# Stop only this project's tracked services and Compose containers; keep data.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop.ps1
 ```
 
-Run recovery tests separately, never during a benchmark or presentation. Full commands, ownership safeguards, migration and dependency setup are in the [runbook](docs/reference/running.md). Historical evidence remains unchanged.
+Startup and shutdown do not delete Docker volumes. Credentials, keys, broker journals, database contents and local reports remain private. Never distribute `.local`, `.m2-cache`, IDE state or Maven `target` directories.
+
+## Test and verify
+
+```powershell
+# Java unit/component tests and executable JAR packaging.
+# Stop this project's JVMs first to release running JARs on Windows.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop.ps1 -KeepDatabases
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\test.ps1
+
+# Full acceptance: build/tests, startup, adversarial PostgreSQL scenarios,
+# 20 offered transfers/second for 120 seconds, and normal-mode restoration.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-local.ps1 -DurationSeconds 120 -RateTolerance 0
+
+# Real local service outages/recovery: run separately, never during the load test.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\recovery.ps1
+```
+
+The full suite checks protected funding, duplicate/conflicting retries, role boundaries, forgery, missing records, tampering/deletion after verification, rollback and delivery replay. Load success requires unique completed operations, correct protected balances/postings and durable audit outcomes, not simply successful HTTP submissions. New reports are written under ignored `.local`; inspect `passed` and restoration status. See the [runbook](docs/reference/running.md) for individual Node suites, fault hooks, ownership safeguards and migration.
+
+The package-layout revision passed 92 Java tests, 40 Node checks, 7 publication-validator tests and all 15 PostgreSQL scenarios. In run `2026-09-07T01-27-24-67e1f9c6`, all 2,400 scheduled load operations completed uniquely with correct protected accounting and audit, with zero transaction failures. However, steady completed throughput was **19.9636 TPS**, below the strict 20 TPS threshold with zero tolerance. The load gate and combined report therefore remain **FAILED**, not a fresh full acceptance pass. Normal-mode restoration passed. The retained raw report is under `.local/verification-2026-09-07T01-27-24-67e1f9c6/report.json`; private runtime evidence is not included in the documentation ZIP.
+
+The [September 6 final recorded run](docs/evidence/local-verification-2026-09-06-final.json) passed 86 Java tests, 15 PostgreSQL scenarios and 2,400 unique completed transfers at 20 offered TPS for 120 seconds, with zero failures and zero configured throughput tolerance. Steady completed throughput was 20.0000 TPS; whole-run throughput was 19.9173 TPS; p95 was 3,057 ms. Missing unpublished receipt detection took 32.96 seconds within the declared 120-second observation budget. These are preserved measurements of that dated run, not a new measurement of every later source change or a production SLA.
+
+Before sharing a rebuilt documentation package, run `docs/build/validate-content.py`; [the documentation build guide](docs/build/README.md) covers generation and the explicit publication allow-list.
+
+## Security boundary and production work
+
+HMAC detects changes to authenticated content; independent receipts, protected execution state and reconciliation cover additional omission/replay cases. This does not prevent a database administrator from modifying or deleting Main data, restore deleted data, detect a deceived but authorized customer's intent, or protect against compromise of the trusted host/services.
+
+The demo's key vault is a local software implementation, not a deployed KMS/HSM. Its embedded broker is persistent but shares the processor JVM/host failure domain. Local API credentials are not production IAM or encrypted service transport. Independent key custody, administration/deployment controls, externally retained checkpoints, backup/PITR, high availability and broader failure/security testing remain [production requirements](docs/reference/architecture.md#production-boundary). HMAC alone does not establish third-party non-repudiation or regulatory compliance.
 
 ## Contributions
 
-Read or clone this public repository to study the implementation. Propose changes through a fork and pull request. Public visibility does not grant write access. Changes to `master` require an explicit owner merge through a pull request; direct pushes, force pushes and deletion are blocked by repository rules. See the [contribution and review policy](docs/reference/contributing.md).
+Read or clone this public repository to study the implementation. Propose changes through a fork and pull request; public visibility does not grant write access. Changes to `master` require an explicit owner merge through a pull request. Direct pushes, force pushes and deletion are blocked by repository rules. See the [contribution and review policy](docs/reference/contributing.md) for the owner-review exception and administrative limits.

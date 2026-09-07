@@ -75,6 +75,13 @@ test('actual HTTP server is read-only on GET and exposes only authenticated fixe
  const page=await fetch(base+'/docs/live/index.html');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/frame-ancestors 'none'/);assert.equal(page.headers.get('access-control-allow-origin'),null);
  for(const route of ['/docs/index.html','/docs/presentation/guide.html','/docs/article/index.html']){const r=await fetch(base+route);assert.equal(r.status,200);const html=await r.text();for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))assert.ok(r.headers.get('content-security-policy').includes('sha256-'+createHash('sha256').update(script[1]).digest('base64')));assert.ok(!html.includes('onclick="'));}
  for(const route of ['/docs/evidence/live-lab-verification-2026-09-05.json','/docs/reference/protocol.md'])assert.equal((await fetch(base+route)).status,200);
+ const guide=await (await fetch(base+'/docs/presentation/guide.html')).text();
+ for(const match of guide.matchAll(/href="([^"]+\.java)"/g)){
+  const source=new URL(match[1],base+'/docs/presentation/guide.html');
+  const response=await fetch(source);assert.equal(response.status,200,source.pathname);
+  assert.match(await response.text(),/^package com\.demo\./);
+ }
+ assert.equal((await fetch(base+'/docs/reference/code-structure.md')).status,200);
 });
 test('diagrams name all participants and preserve receipt-before-source-before-MAC order',()=>{
  assert.equal(flowSteps.length,12);assert.equal(participants.length,7);const svg=architectureSvg();for(const step of flowSteps)for(const node of [step.from,step.to])assert.ok(svg.includes(`id="node-${node}"`));

@@ -64,7 +64,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\live-demo.ps1
 
 Keep that terminal open and visit `http://127.0.0.1:8090/docs/live/index.html`. The helper binds only to `127.0.0.1:8090`; Ctrl+C stops the helper without deleting fixtures or stopping the databases. If the stack is already running, omit `-StartStack`. The launcher reuses built JARs and existing JVM settings; it does not silently disable fault hooks left by an interrupted test. Do not run acceptance, fault or recovery tests while presenting.
 
-The page offers protected $1,000 funding of a dedicated Alice account, one authenticated $25 transfer to dedicated Bob, and one fabricated $25 primary row without issuance. Repeat clicks retry persistent identities rather than make additional payments. The forgery must be quarantined with `No independent issuance receipt`, no financial postings and unchanged protected balances. This case stops before HMAC verification. Read-only fixture-scoped queries show Primary, Audit and Settlement tables with observation timestamps; these are not one global database snapshot.
+The page offers protected $1,000 funding of a dedicated Alice account, one authenticated $25 transfer to dedicated Bob, and one fabricated $25 primary row without issuance. Repeat clicks retry persistent identities rather than make additional payments. The forgery must be quarantined with `No independent issuance receipt`, no financial postings and unchanged protected balances. This case stops before HMAC verification. Read-only fixture-scoped queries show Main/Primary source tables and Audit/Protected evidence/accounting tables with observation timestamps; these are not one global database snapshot. Accounting remains a separate logical table group in Audit/Protected, not a third physical database.
 
 The helper is trusted local teaching infrastructure. Its fixed attacker action writes only its own primary row and outbox hint. It has no user-supplied SQL, IDs, amounts, arbitrary file serving, proxy or process-control endpoint. Exact Host/Origin checks, a per-process browser session capability and text-only rendering constrain the local web interface. Real backend credentials remain server-side. `.local/live-demo` retains fixture ownership and verification results and must not be shared wholesale.
 
@@ -86,8 +86,9 @@ The integration runner uses only the helper's dedicated fixtures and writes a ne
 | Key service | `127.0.0.1:8081` | `audit_key` |
 | Processor | `127.0.0.1:8082` | `primary_processor`, `audit_processor`, `settlement_processor` |
 | Primary PostgreSQL | `127.0.0.1:55431` | Separate primary database instance |
-| Audit PostgreSQL | `127.0.0.1:55432` | Separate audit database instance |
-| Settlement PostgreSQL | `127.0.0.1:55433` | Separate settlement database instance |
+| Audit/Protected PostgreSQL | `127.0.0.1:55432` | One protected instance for issuance, audit history and authoritative accounting; separate runtime roles |
+
+Only two PostgreSQL instances run in the default profile. `settlement_processor` connects to accounting tables in Audit/Protected; the logical `SETTLEMENT_URL` setting does not imply a separate server. Port `55433` belongs only to the retained legacy three-database installation, not the current default architecture.
 
 Generated passwords and API credentials live in ignored `.local/secrets.json`; Compose sees only database-administrator credentials in `.local/compose.env`. These files must never be committed, sent with a presentation, or pasted into logs. Credentials are random, not sample literals. The `.local/` Windows ACL is restricted to the executing identity and workspace owner. Host Java process environments contain only the credentials needed by each service; raw HMAC and signing keys are never put in those environments.
 

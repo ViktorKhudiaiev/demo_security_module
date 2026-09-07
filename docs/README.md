@@ -2,11 +2,13 @@
 
 Open **[index.html](index.html)** directly in your browser. No application, server, build step or network connection is needed for the walkthrough. Keep this folder intact for the linked article, slides, guide and reference documents.
 
+For implementation details, start with [Code structure and reading guide](reference/code-structure.md), then [Architecture](reference/architecture.md), [Protocol](reference/protocol.md) and [Local runbook](reference/running.md). The source guide distinguishes transport DTOs, immutable business/protocol models and the explicit JDBC schemas.
+
 | Folder | Contents |
 |---|---|
 | `article` | Article source, HTML and PDF |
 | `presentation` | Current PowerPoint, presenter guide and notes |
-| `reference` | Protocol, architecture, glossary, requirements and runbook |
+| `reference` | Code structure, protocol, architecture, glossary, requirements and runbook |
 | `evidence` | Dated, sanitized measurements; never relabeled or edited |
 | `history` | Superseded designs and review history |
 | `downloads` | Ready-to-share documentation ZIP |

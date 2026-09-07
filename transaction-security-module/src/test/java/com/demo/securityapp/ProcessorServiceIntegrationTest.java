@@ -1,6 +1,13 @@
 package com.demo.securityapp;
 
-import com.demo.integrity.*;
+import com.demo.integrity.crypto.CanonicalEncoder;
+import com.demo.integrity.dto.SignedCheckpoint;
+import com.demo.integrity.dto.SignedOperation;
+import com.demo.integrity.model.Checkpoint;
+import com.demo.integrity.model.Operation;
+import com.demo.securityapp.audit.AuditLog;
+import com.demo.securityapp.client.KeyGateway;
+import com.demo.securityapp.service.Processor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;

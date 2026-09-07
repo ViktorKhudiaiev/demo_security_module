@@ -157,11 +157,14 @@ A separate recovery run confirmed two cases: after restart, the stopped processo
 
 Read in this order. Related tests reside in `src/test/java`:
 
-- [TransferService.java](../../account-transfer-app/src/main/java/com/demo/transferapp/TransferService.java): operation creation, issuance, publication, funding and reversal/correction.
-- [CanonicalEncoder.java](../../tokenization-module/src/main/java/com/demo/integrity/CanonicalEncoder.java): the exact authenticated bytes.
-- [IssuanceService.java](../../tokenization-module/src/main/java/com/demo/keyservice/IssuanceService.java): receipt before response, retries and inventory. [LocalKeyVault.java](../../tokenization-module/src/main/java/com/demo/keyservice/LocalKeyVault.java): keys, rotation and signatures.
-- [Processor.java](../../transaction-security-module/src/main/java/com/demo/securityapp/Processor.java): `discover/reconcile`, `process`, `settle` and `relay` cover discovery, verification, settlement and outcome delivery.
-- [AuditLog.java](../../transaction-security-module/src/main/java/com/demo/securityapp/AuditLog.java) and [MerkleTree.java](../../transaction-security-module/src/main/java/com/demo/securityapp/MerkleTree.java): history, checkpoints and inclusion proofs.
+- [TransferService.java](../../account-transfer-app/src/main/java/com/demo/transferapp/service/TransferService.java): operation creation, issuance, publication, funding and reversal/correction.
+- [CanonicalEncoder.java](../../tokenization-module/src/main/java/com/demo/integrity/crypto/CanonicalEncoder.java): the exact authenticated bytes.
+- [IssuanceService.java](../../tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java): receipt before response, retries and inventory. [LocalKeyVault.java](../../tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java): keys, rotation and signatures.
+- [Processor.java](../../transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java): `discover/reconcile`, `process`, `settle` and `relay` cover discovery, verification, settlement and outcome delivery.
+- [AuditLog.java](../../transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java) and [MerkleTree.java](../../transaction-security-module/src/main/java/com/demo/securityapp/crypto/MerkleTree.java): history, checkpoints and inclusion proofs.
+
+The [source layout guide](../reference/code-structure.md) distinguishes API DTOs, protocol models and services. The deck's embedded source citations reflect its generation-time layout; use this guide for current clickable source paths.
+
 - [scenarios.mjs](../../scripts/scenarios.mjs), [load.mjs](../../scripts/load.mjs) and [recovery.mjs](../../scripts/recovery.mjs): reproducible evidence.
 
 Five words to remember: **operation → receipt → snapshot → settlement → evidence**.

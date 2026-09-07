@@ -191,11 +191,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;.\scripts\status.p
 <h2>9. Code map and pre-presentation checklist</h2>
 <p>Read in this order. Related tests reside in <code>src/test/java</code>:</p>
 <ul>
-<li><a href="../../account-transfer-app/src/main/java/com/demo/transferapp/TransferService.java">TransferService.java</a>: operation creation, issuance, publication, funding and reversal/correction.</li>
-<li><a href="../../tokenization-module/src/main/java/com/demo/integrity/CanonicalEncoder.java">CanonicalEncoder.java</a>: the exact authenticated bytes.</li>
-<li><a href="../../tokenization-module/src/main/java/com/demo/keyservice/IssuanceService.java">IssuanceService.java</a>: receipt before response, retries and inventory. <a href="../../tokenization-module/src/main/java/com/demo/keyservice/LocalKeyVault.java">LocalKeyVault.java</a>: keys, rotation and signatures.</li>
-<li><a href="../../transaction-security-module/src/main/java/com/demo/securityapp/Processor.java">Processor.java</a>: <code>discover/reconcile</code>, <code>process</code>, <code>settle</code> and <code>relay</code> cover discovery, verification, settlement and outcome delivery.</li>
-<li><a href="../../transaction-security-module/src/main/java/com/demo/securityapp/AuditLog.java">AuditLog.java</a> and <a href="../../transaction-security-module/src/main/java/com/demo/securityapp/MerkleTree.java">MerkleTree.java</a>: history, checkpoints and inclusion proofs.</li>
+<li><a href="../../account-transfer-app/src/main/java/com/demo/transferapp/service/TransferService.java">TransferService.java</a>: operation creation, issuance, publication, funding and reversal/correction.</li>
+<li><a href="../../tokenization-module/src/main/java/com/demo/integrity/crypto/CanonicalEncoder.java">CanonicalEncoder.java</a>: the exact authenticated bytes.</li>
+<li><a href="../../tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java">IssuanceService.java</a>: receipt before response, retries and inventory. <a href="../../tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java">LocalKeyVault.java</a>: keys, rotation and signatures.</li>
+<li><a href="../../transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java">Processor.java</a>: <code>discover/reconcile</code>, <code>process</code>, <code>settle</code> and <code>relay</code> cover discovery, verification, settlement and outcome delivery.</li>
+<li><a href="../../transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java">AuditLog.java</a> and <a href="../../transaction-security-module/src/main/java/com/demo/securityapp/crypto/MerkleTree.java">MerkleTree.java</a>: history, checkpoints and inclusion proofs.</li>
+</ul>
+<p>The <a href="../reference/code-structure.md">source layout guide</a> distinguishes API DTOs, protocol models and services. The deck&#39;s embedded source citations reflect its generation-time layout; use this guide for current clickable source paths.</p>
+<ul>
 <li><a href="../../scripts/scenarios.mjs">scenarios.mjs</a>, <a href="../../scripts/load.mjs">load.mjs</a> and <a href="../../scripts/recovery.mjs">recovery.mjs</a>: reproducible evidence.</li>
 </ul>
 <p>Five words to remember: <strong>operation → receipt → snapshot → settlement → evidence</strong>.</p>
