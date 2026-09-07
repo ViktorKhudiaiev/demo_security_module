@@ -1,0 +1,91 @@
+{
+  "kind": "local-live-lab-integration",
+  "startedAt": "2026-09-06T00:46:42.892Z",
+  "finishedAt": "2026-09-06T00:47:02.382Z",
+  "passed": true,
+  "checks": [
+    {
+      "name": "All three local Java services ready",
+      "passed": true
+    },
+    {
+      "name": "Authenticated funding recorded: 100000 cents; current protected balances reconciled",
+      "passed": true
+    },
+    {
+      "name": "Authenticated $25 transfer: exact source, receipt, result, two postings and relayed audit",
+      "passed": true
+    },
+    {
+      "name": "Repeated valid action retains UUID and exactly two postings",
+      "passed": true
+    },
+    {
+      "name": "Direct-primary forgery: no receipt, quarantine, zero postings, balances unchanged",
+      "passed": true
+    },
+    {
+      "name": "Repeated forged action retains UUID and no financial effect",
+      "passed": true
+    },
+    {
+      "name": "Foreign-origin action rejected",
+      "passed": true
+    },
+    {
+      "name": "Missing session capability rejected",
+      "passed": true
+    },
+    {
+      "name": "Arbitrary SQL/action fields rejected",
+      "passed": true
+    },
+    {
+      "name": "New demonstration retains completed ownership and creates unprepared fresh identities",
+      "passed": true
+    },
+    {
+      "name": "Repeated new-demo request does not replace the fresh identities",
+      "passed": true
+    }
+  ],
+  "fixtures": {
+    "alice": "2a633223-0dba-4841-bdd5-8eba17f5abc1",
+    "bob": "da0794b0-31ab-4577-945c-1496006dd790",
+    "operations": {
+      "funding": "cb6cf7d5-6789-48e7-bcfb-463ab256581b",
+      "valid": "21e61902-e2a5-487f-875a-2c1bd6624fba",
+      "forged": "fb091e83-2092-4ac5-95f4-03c79ad62af2"
+    }
+  },
+  "nextDemoRunId": "07a104d8-5444-427a-a781-1b7d27b122f8",
+  "balances": [
+    {
+      "id": "2a633223-0dba-4841-bdd5-8eba17f5abc1",
+      "balanceCents": 97500
+    },
+    {
+      "id": "da0794b0-31ab-4577-945c-1496006dd790",
+      "balanceCents": 2500
+    }
+  ],
+  "operationChecks": {
+    "funding": {
+      "passed": true
+    },
+    "valid": {
+      "passed": true
+    },
+    "forged": {
+      "passed": true
+    },
+    "balancesMatch": true
+  },
+  "limits": [
+    "Simulated USD; no external payments.",
+    "Actions reuse identities within a demonstration. A new demonstration preserves old records.",
+    "Three stores are read separately, not as a global atomic snapshot.",
+    "This is functional integration, not a new 20 TPS benchmark or browser UI test.",
+    "Local software-key stack; host and helper remain trusted."
+  ]
+}

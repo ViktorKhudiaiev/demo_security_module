@@ -1,0 +1,50 @@
+name: secure-integrity-demo
+
+# Separate instances model independent database administrators, not independent
+# hosts. The local Docker/host administrator remains trusted.
+services:
+  primary-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: primary_db
+      POSTGRES_USER: primary_admin
+      POSTGRES_PASSWORD: ${PRIMARY_ADMIN_PASSWORD:?Run scripts/start.ps1 first}
+    ports: ["127.0.0.1:55431:5432"]
+    volumes: ["primary-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U primary_admin -d primary_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  audit-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: audit_db
+      POSTGRES_USER: audit_admin
+      POSTGRES_PASSWORD: ${AUDIT_ADMIN_PASSWORD:?Run scripts/start.ps1 first}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["audit-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit_admin -d audit_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  settlement-db:
+    # Retained only for migration/rollback inspection. Not part of the running demo.
+    profiles: ["legacy"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: settlement_db
+      POSTGRES_USER: settlement_admin
+      POSTGRES_PASSWORD: ${SETTLEMENT_ADMIN_PASSWORD:?Run scripts/start.ps1 first}
+    ports: ["127.0.0.1:55433:5432"]
+    volumes: ["settlement-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U settlement_admin -d settlement_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  primary-data:
+  audit-data:
+  settlement-data:

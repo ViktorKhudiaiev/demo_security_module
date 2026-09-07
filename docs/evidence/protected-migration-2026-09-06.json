@@ -1,0 +1,44 @@
+{
+  "runId": "protected-2026-09-06T23-18-08.555Z-26e9e7b6",
+  "startedAt": "2026-09-06T23:18:08.577Z",
+  "passed": true,
+  "tables": {
+    "accounts": {
+      "count": 29,
+      "sha256": "9a9236e5e16d40b6494dcbb83c206010578017e3bbe44e34e01e4446a1c24df9"
+    },
+    "operation_jobs": {
+      "count": 4845,
+      "sha256": "a77913bad45b88d30c8616bf75f363a6f549a443f59b9e67f73dab119e6f7486"
+    },
+    "operation_results": {
+      "count": 4845,
+      "sha256": "8ee047bdf9935b6623fd788754ac8e5b596f19b9741eb1440c42fe36a04f39f6"
+    },
+    "ledger_journal": {
+      "count": 4835,
+      "sha256": "889a8765be1ddb8dbf247516dabe21511e946c64565d1bd705966e50ffe09bea"
+    },
+    "ledger_postings": {
+      "count": 9670,
+      "sha256": "a43c370c6ea11b017b8600a5e7ea6a0feb43f6dd5d76f23cfe5c7bde79854fc3"
+    },
+    "settlement_outbox": {
+      "count": 4845,
+      "sha256": "3ddc6a2d7724e5a93dd14e6ffcc4618b6f841a99d17be31c00d218f1ea05673c"
+    },
+    "account_audit_outbox": {
+      "count": 28,
+      "sha256": "6d7747c9440cfc1071b80cc75875a03229d05bf8e3f6bb69a204b8e2e776a56b"
+    }
+  },
+  "notes": [
+    "Seven accounting tables copied into audit_db; separate runtime roles retained.",
+    "Old settlement container is stopped only after verification; its volume is retained.",
+    "After new writes, rollback requires reconciliation of those writes, not a blind endpoint switch."
+  ],
+  "provenance": {
+    "rawSha256": "92c7a58fdbd9e9df7205bb1dae83981bd79a3287d6b236deea778fe4f50592e0",
+    "note": "Selected fields from retained local evidence. No credentials, keys or absolute workstation paths."
+  }
+}

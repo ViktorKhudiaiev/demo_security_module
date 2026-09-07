@@ -1,0 +1,202 @@
+{
+  "scope": "Local software-key simulation; one trusted Windows host. No production guarantee or real payments.",
+  "provenance": {
+    "runId": "2026-09-05T22-34-15-fccf37b1",
+    "rawCombinedSha256": "c6b2849eb03574054e35d560ed4b06cccf3b1dfd7c031975bd9e42bef0d3c13a",
+    "rawLoadSha256": "f086a85dfc1a216ef0a6a153cb6f1152b844823f519758cf54bb76e3fd079c31",
+    "note": "Selected data copied from retained local JSON reports; no credentials, key material or user-specific absolute paths included. Raw artifacts remain under .local/verification-<runId>/."
+  },
+  "startedAt": "2026-09-05T22:34:15.7659727Z",
+  "endedAt": "2026-09-05T22:38:50.0483198Z",
+  "passed": true,
+  "build": "PASSED",
+  "javaTests": {
+    "suites": 10,
+    "tests": 75,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "harnessTests": "PASSED",
+  "normalRestart": "PASSED",
+  "scenarios": [
+    {
+      "name": "prerequisites-and-scoped-primary-database",
+      "passed": true,
+      "durationMs": 987.4480000000001
+    },
+    {
+      "name": "missing-app-credential-is-401",
+      "passed": true,
+      "durationMs": 6.917400000000043
+    },
+    {
+      "name": "service-credentials-have-separate-authority",
+      "passed": true,
+      "durationMs": 51.37000000000012
+    },
+    {
+      "name": "zero-balance-registration-and-protected-funding",
+      "passed": true,
+      "durationMs": 1444.5246
+    },
+    {
+      "name": "transfer-and-idempotent-retry-have-one-financial-effect",
+      "passed": true,
+      "durationMs": 467.29100000000017
+    },
+    {
+      "name": "same-idempotency-key-different-amount-is-409",
+      "passed": true,
+      "durationMs": 31.640899999999874
+    },
+    {
+      "name": "twenty-concurrent-retries-return-one-operation",
+      "passed": true,
+      "durationMs": 334.6084999999998
+    },
+    {
+      "name": "primary-runtime-role-cannot-edit-operation-content",
+      "passed": true,
+      "durationMs": 531.2352999999998
+    },
+    {
+      "name": "forged-primary-row-with-fake-mac-is-quarantined",
+      "passed": true,
+      "durationMs": 702.1605000000004
+    },
+    {
+      "name": "issued-record-missing-before-publication-is-detected",
+      "passed": true,
+      "durationMs": 20843.837499999998
+    },
+    {
+      "name": "tamper-after-verification-before-use-is-quarantined",
+      "passed": true,
+      "durationMs": 5860.622399999997
+    },
+    {
+      "name": "delete-after-verification-is-quarantined",
+      "passed": true,
+      "durationMs": 5649.620299999999
+    },
+    {
+      "name": "failure-after-debit-rolls-back-and-retry-settles-once",
+      "passed": true,
+      "durationMs": 4034.4758
+    },
+    {
+      "name": "replayed-primary-outbox-does-not-repeat-settlement",
+      "passed": true,
+      "durationMs": 1306.0823999999993
+    },
+    {
+      "name": "completed-source-tampering-raises-incident-without-another-debit",
+      "passed": true,
+      "durationMs": 15237.410100000001
+    }
+  ],
+  "load": {
+    "runId": "2026-09-05T22-36-20-074Z-5a283b1b",
+    "startedAt": "2026-09-05T22:36:22.824Z",
+    "endedAt": "2026-09-05T22:38:23.422Z",
+    "nodeVersion": "v24.19.0",
+    "platform": "win32",
+    "host": {
+      "cpuModel": "13th Gen Intel(R) Core(TM) i7-13620H",
+      "logicalCpus": 16,
+      "totalMemoryBytes": 16858472448,
+      "osRelease": "10.0.26200"
+    },
+    "configuration": {
+      "targetTps": 20,
+      "seconds": 120,
+      "warmupSeconds": 10,
+      "drainSeconds": 30,
+      "accountCount": 8,
+      "completionTolerance": 0,
+      "acceptedTpsFloor": 20
+    },
+    "expectedCount": 2400,
+    "submitted": 2400,
+    "completed": 2400,
+    "uniqueOperationCount": 2400,
+    "failures": 0,
+    "offeredTps": 20,
+    "steadyCompletedTps": 20.009090909090908,
+    "totalCompletedTpsIncludingDrain": 19.918147170926964,
+    "drainTimeMs": 493.1351999999897,
+    "backlogGrowth": -0.7033333333333331,
+    "latencyMs": {
+      "p50": 490.17379999998957,
+      "p95": 708.9955000000045,
+      "p99": 852.6887000000002,
+      "max": 1128.8103
+    },
+    "criteria": {
+      "allScheduledSubmitted": true,
+      "uniqueOperationIds": true,
+      "allCompletedWithAudit": true,
+      "balancesMatchProtectedLedger": true,
+      "steadyThroughput": true,
+      "boundedBacklog": true
+    },
+    "passed": true,
+    "balances": [
+      {
+        "id": "68f460ca-aa95-4075-9882-5fb1b3634d1a",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "34e2270b-9e1d-4210-9123-6eff6c1fc5a9",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "ec3e9536-e4cf-448e-a04d-fec69be1a291",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "66181f86-72b1-41ac-8bae-7cf05ea0ca93",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "0f16b3ac-e63f-4ceb-a356-d03512561b85",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "549167be-3e76-4c01-a9f8-dec330cff3a4",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "e2bb9fe4-70b8-4978-9a37-f0335476b141",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "d4f7d2c0-51e4-4e1e-9586-5ae03388a421",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      }
+    ],
+    "errors": [],
+    "limitations": [
+      "Local software-key demo on one trusted host, not a production KMS/HSM benchmark.",
+      "Steady-state completion rate excludes the declared warmup and uses an explicit finite-window tolerance.",
+      "This test adds fresh accounts and simulated funding; it does not delete existing data."
+    ]
+  }
+}

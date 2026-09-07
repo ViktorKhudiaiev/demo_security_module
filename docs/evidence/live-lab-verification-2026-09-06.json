@@ -1,0 +1,71 @@
+{
+  "kind": "local-live-lab-integration",
+  "startedAt": "2026-09-06T23:39:10.901Z",
+  "finishedAt": "2026-09-06T23:39:49.523Z",
+  "passed": true,
+  "checks": [
+    {
+      "name": "All three local Java services ready",
+      "passed": true
+    },
+    {
+      "name": "Processor reports a persistent embedded VM broker",
+      "passed": true
+    },
+    {
+      "name": "Authenticated funding recorded: 100000 cents; current protected balances reconciled",
+      "passed": true
+    },
+    {
+      "name": "Authenticated $25 transfer: exact source, receipt, result, two postings and relayed audit",
+      "passed": true
+    },
+    {
+      "name": "Two physical databases: evidence and accounting both read audit_db",
+      "passed": true
+    },
+    {
+      "name": "Repeated valid action retains UUID and exactly two postings",
+      "passed": true
+    },
+    {
+      "name": "Direct-primary forgery: no receipt, quarantine, zero postings, balances unchanged",
+      "passed": true
+    },
+    {
+      "name": "Repeated forged action retains UUID and no financial effect",
+      "passed": true
+    },
+    {
+      "name": "Foreign-origin action rejected",
+      "passed": true
+    },
+    {
+      "name": "Missing session capability rejected",
+      "passed": true
+    },
+    {
+      "name": "Arbitrary SQL/action fields rejected",
+      "passed": true
+    },
+    {
+      "name": "New demonstration retains completed ownership and creates unprepared fresh identities",
+      "passed": true
+    },
+    {
+      "name": "Repeated new-demo request does not replace the fresh identities",
+      "passed": true
+    }
+  ],
+  "limits": [
+    "Simulated USD; no external payments.",
+    "Actions reuse identities within a demonstration. A new demonstration preserves old records.",
+    "Three logical table groups in two databases are read separately, not as a global atomic snapshot.",
+    "This is functional integration, not a new 20 TPS benchmark or browser UI test.",
+    "Local software-key stack; host and helper remain trusted."
+  ],
+  "provenance": {
+    "rawSha256": "7705f1a301e8894be4927ded1b94c25b59ecc5bdab57bf25a8619ffd3998bda5",
+    "note": "Selected fields from retained local evidence. No credentials, keys or absolute workstation paths."
+  }
+}

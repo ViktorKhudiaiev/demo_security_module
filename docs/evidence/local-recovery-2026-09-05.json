@@ -1,0 +1,87 @@
+{
+  "runId": "2026-09-05T22-44-50-412Z-ade2ba74",
+  "startedAt": "2026-09-05T22:44:50.414Z",
+  "passed": true,
+  "checks": [
+    {
+      "name": "healthy-local-demo-and-fresh-funded-fixtures",
+      "passed": true,
+      "durationMs": 1346.1098,
+      "evidence": {
+        "balances": [
+          {
+            "id": "73627c6d-13c5-4d8c-ba54-baf1d26eb010",
+            "balance_cents": 0
+          },
+          {
+            "id": "e5d8b766-f653-4167-8ed9-96c6b20da35f",
+            "balance_cents": 100000
+          }
+        ],
+        "fundingOperationId": "ad0e6d6a-4a90-4221-b033-2441caa87aff"
+      }
+    },
+    {
+      "name": "processor-outage-ambiguous-503-recovers-exactly-once",
+      "passed": true,
+      "durationMs": 18390.420299999998,
+      "evidence": {
+        "operationId": "53b82fd3-69af-4bd6-ae19-d7b376ff2ec0",
+        "initialHttpStatus": 503,
+        "publishedRowsDuringOutage": 1,
+        "postingCountDuringOutage": 0,
+        "finalPostingCount": 2,
+        "balances": [
+          {
+            "id": "73627c6d-13c5-4d8c-ba54-baf1d26eb010",
+            "balance_cents": 17
+          },
+          {
+            "id": "e5d8b766-f653-4167-8ed9-96c6b20da35f",
+            "balance_cents": 99983
+          }
+        ]
+      }
+    },
+    {
+      "name": "key-service-outage-fails-closed-then-new-operation-retry-succeeds",
+      "passed": true,
+      "durationMs": 18667.6741,
+      "evidence": {
+        "operationId": "e13bef10-dd3d-46fa-b665-118047fcedaa",
+        "initialHttpStatus": 503,
+        "receiptsDuringOutage": 0,
+        "publishedRowsDuringOutage": 0,
+        "finalPostingCount": 2,
+        "balances": [
+          {
+            "id": "73627c6d-13c5-4d8c-ba54-baf1d26eb010",
+            "balance_cents": 40
+          },
+          {
+            "id": "e5d8b766-f653-4167-8ed9-96c6b20da35f",
+            "balance_cents": 99960
+          }
+        ]
+      }
+    }
+  ],
+  "fixtureAccounts": [
+    "e5d8b766-f653-4167-8ed9-96c6b20da35f",
+    "73627c6d-13c5-4d8c-ba54-baf1d26eb010"
+  ],
+  "fixtureOperations": [
+    "ad0e6d6a-4a90-4221-b033-2441caa87aff",
+    "53b82fd3-69af-4bd6-ae19-d7b376ff2ec0",
+    "e13bef10-dd3d-46fa-b665-118047fcedaa"
+  ],
+  "normalRestart": "PASSED",
+  "limitations": [
+    "Local Windows JVM process stops, not host power loss, partition, Docker/database crash, or production failover.",
+    "Run exclusively, after verify-local.ps1. Existing start/stop scripts restore normal mode with test hooks disabled.",
+    "Key-service outage covers refusal to issue NEW operations; it does not test an already verified in-flight settlement.",
+    "Database admin access is a read-only observer for fixture evidence, not part of the simulated attacker authority.",
+    "Fixtures, database volumes, key material and evidence are retained. A forced termination of this harness may prevent finally restoration."
+  ],
+  "endedAt": "2026-09-05T22:45:57.270Z"
+}

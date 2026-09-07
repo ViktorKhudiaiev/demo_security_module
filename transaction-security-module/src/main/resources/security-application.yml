@@ -1,0 +1,32 @@
+server:
+  port: ${PROCESSOR_PORT:8082}
+spring:
+  application:
+    name: integrity-processor
+  main:
+    banner-mode: "off"
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+processor:
+  broker:
+    directory: ${BROKER_DIRECTORY}
+  scheduling-enabled: ${PROCESSOR_SCHEDULING_ENABLED:true}
+  test-faults-enabled: ${PROCESSOR_TEST_FAULTS_ENABLED:false}
+  app-token: ${PROCESSOR_APP_TOKEN}
+  admin-token: ${PROCESSOR_ADMIN_TOKEN}
+  ledger-id: ${LEDGER_ID:00000000-0000-0000-0000-000000000010}
+  key-url: ${KEY_SERVICE_URL:http://localhost:8081}
+  verifier-token: ${KEY_VERIFIER_TOKEN}
+  signer-token: ${KEY_SIGNER_TOKEN}
+  primary:
+    url: ${PRIMARY_URL}
+    username: ${PRIMARY_USER}
+    password: ${PRIMARY_PASSWORD}
+  audit:
+    url: ${AUDIT_URL}
+    username: ${AUDIT_USER}
+    password: ${AUDIT_PASSWORD}
+  settlement:
+    url: ${SETTLEMENT_URL}
+    username: ${SETTLEMENT_USER}
+    password: ${SETTLEMENT_PASSWORD}
