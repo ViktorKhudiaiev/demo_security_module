@@ -1,18 +1,22 @@
 # Understanding and Presenting the Transaction Integrity Demo
 
-A practical guide for the author. Current architecture updated September 6, 2026; September 5 benchmark values below are a historical baseline. This prepares a technical discussion, not a production payment-system deployment.
+A practical guide for the author, updated September 8, 2026. The latest throughput gate failed; earlier successful measurements remain dated historical evidence. This prepares a technical discussion, not a production payment-system deployment.
 
-## Current two-database evidence
+## Current evidence and what not to conflate
 
-The September 6 measured run offered 20 TPS for 120 seconds: 2,400 unique completions, zero failures, 20.3091 steady completed TPS, 19.9371 whole-run TPS and 3,990 ms p95. It included 83 Java tests and 15 PostgreSQL scenarios. Subsequent review added three admission/shutdown regressions; Maven verification now passes 86 tests. Two real outage cases and 13 Live Lab checks also passed. See [current acceptance and limits](../reference/architecture.md), [current workload report](../evidence/local-verification-2026-09-06.json) and [current recovery](../evidence/local-recovery-2026-09-06.json).
+The [latest load run, September 7](../evidence/local-verification-2026-09-07.json), completed all 2,400 unique transfers correctly with zero transaction failures, but measured **19.9636 steady completed TPS**, below the strict 20 TPS threshold. The load gate and combined report are **FAILED**. Its 92 Java tests, 15 PostgreSQL scenarios, protected accounting, durable audit and normal restoration passed. p95 was 668 ms and p99 791 ms. Do not round the result into a pass or attribute the failure to a cause that was not isolated.
+
+The [historical September 6 final run](../evidence/local-verification-2026-09-06-final.json) passed with 86 Java tests, 15 scenarios and 20.0000 steady completed TPS. The [initial September 6 measurement](../evidence/local-verification-2026-09-06.json), [recovery](../evidence/local-recovery-2026-09-06.json) and Live Lab evidence remain dated examples, not acceptance of later source changes.
+
+The September 8 notification implementation passed 137 Java tests in 19 suites, 44 Node checks and 18 PostgreSQL role checks before publication updates. Its [four-case PostgreSQL-to-Mailpit integration](../evidence/notification-verification-2026-09-08.json) verified valid/no-alert, forgery/quarantine, repeated identity and post-settlement tampering. This is local capture, **not delivery to Gmail**, a real-provider SMTP handshake or a new throughput run. Read [notification setup and limitations](../reference/notifications.md) before demonstrating the inbox.
 
 Missing-record reconciliation scans retained history. A 30-second scenario timeout was observed; the operation was later quarantined without postings. The long-history test now declares a 120-second observation budget. Do not present either value as a production detection SLA. The historical quotations below retain their original date and measurements.
 
 ## 1. Open these three resources first
 
 1. [Interactive HTML explanation](../index.html) starts with four short overview blocks. Architecture follows twelve numbered arrows across three modules, two databases and embedded ActiveMQ; Sequence shows separate participant lifelines. These diagrams explain implementation order, not captured network traffic.
-2. [Completed local verification report](../evidence/local-verification-2026-09-05.json) and [recovery report](../evidence/local-recovery-2026-09-05.json) contain actual retained results. Opening a report does not repeat the experiment.
-3. [Current and production architecture](../reference/architecture-decisions.md) maps what works today and what needs additional infrastructure. The [implementation status](../reference/implementation-status.md) lists detailed limitations.
+2. [Latest failed throughput report](../evidence/local-verification-2026-09-07.json), [historical pass](../evidence/local-verification-2026-09-06-final.json) and [notification capture report](../evidence/notification-verification-2026-09-08.json) describe different runs. Opening a report does not repeat the experiment.
+3. [Current and production architecture](../reference/architecture.md) maps what works today and what needs additional infrastructure. The [implementation status](../reference/implementation-status.md) lists detailed limitations.
 
 The separate [Live transaction lab](../live/index.html) calls the actual local Java services and reads actual PostgreSQL rows through a loopback-only helper. Opening its file alone does not start that helper. Explain the distinction during a meeting: "First I will explain the architecture, then run a valid transfer and a forged database instruction against the local stack, and finally show the retained benchmark." All funds are simulated; this is not a bank integration.
 
@@ -26,7 +30,9 @@ The separate [Live transaction lab](../live/index.html) calls the actual local J
 >
 > Audit history also receives digitally signed Merkle checkpoints. We do not build blockchain consensus among mutually distrustful participants.
 >
-> The local experiment completed 2,400 unique transfers with no failures and about 20 completed transfers per second after warmup. However, the local setup does not resist the administrator of the whole computer. Cloud isolation, hardware keys and independently retained evidence remain separate production requirements.
+> A suspected integrity incident also queues a minimal email in protected storage. A separate worker retries delivery; email is not permission to settle. This demonstration uses a local capture inbox, not an external mailbox.
+>
+> The latest throughput run completed all 2,400 transfers correctly, but 19.9636 completed TPS did not pass our strict 20 TPS threshold. Notification tests are functional evidence, not a new benchmark. The setup does not resist the administrator of the whole computer. Cloud isolation, hardware keys and independently retained evidence remain separate production requirements.
 
 Main point: **a primary database row is a candidate for execution, not permission to move money**.
 
@@ -41,6 +47,8 @@ In this example, the sender transfers 25 USD to the recipient. The operation rec
 5. **Audit/Protected DB, port 55432, accounting role.** The checked snapshot supplies the amount and accounts. The processor locks the accounts, checks protected balances and restrictions, and atomically commits debit, credit, balances, result and outcome outbox. An existing result prevents repeat execution.
 6. **The same Audit/Protected DB, audit role.** It receives the durably relayed outcome. Primary receives a displayable status. Both projections may lag. There is no single ACID transaction across both databases and JMS.
 7. **History.** Audit events form a Merkle tree. The key service signs a checkpoint using a separate Ed25519 key. Anchors reside outside audit DB but remain on the same local computer.
+
+An incident follows an optional side path rather than an extra normal settlement step: `audit_events + notification_outbox` commit together, then a separate dispatcher sends the initial per-operation alert. For the local demonstration inspect `http://127.0.0.1:8025`. Repeated observations retain one notification entry, but a crash after SMTP acceptance can still cause duplicate email. A discrepancy after settlement does not mean the original protected operation was blocked or reversed.
 
 Funding uses a protected `FUNDING` operation from the demonstration Treasury account, rather than an initial-balance edit. This simulates funds and does not prove an external bank deposit. Correcting a completed transfer means a separate compensation and a new correct operation, rather than changing the original row.
 
@@ -62,6 +70,7 @@ Funding uses a protected `FUNDING` operation from the demonstration Treasury acc
 | Checkpoint / anchor | A checkpoint binds the root, tree size and log identity to context and a signature. An anchor is a retained reference point for later comparison. Freshness needs a trusted recent expectation. |
 | Ed25519 | An asymmetric checkpoint signature. A private key signs and a public key verifies. The expected public key must come from a trusted channel, not merely accompany the signature. |
 | Quarantine | The operation does not execute, and the discrepancy remains available for investigation. This does not automatically block the named recipient. |
+| Mailpit / SMTP acceptance | Mailpit captures test email locally. SMTP acceptance records that a mail server accepted the message; it does not prove inbox delivery, reading or a human response. |
 
 Exact field layout and test vectors: [protocol v1](../reference/protocol.md). Extended explanations, including KMS/HSM and regulatory abbreviations: [technical glossary](../reference/glossary.md).
 
@@ -72,6 +81,7 @@ Exact field layout and test vectors: [protocol v1](../reference/protocol.md). Ex
 | 0–2 minutes | Overview: problem, control, execution and limits | The boundary protects execution under primary compromise, not the entire computer. |
 | 2–6 | Architecture arrows, then the full Sequence diagram | A receipt precedes primary publication. Polling persists work before acknowledging it; receipt lookup precedes source validation. |
 | 6–9 | Live lab: prepare accounts, valid $25 transfer, forged $25 row | Real receipts, jobs, results and postings explain what ran. The forgery has no receipt and stops before HMAC verification. |
+| Optional within 6–9 | Open the local Mailpit inbox and correlate the fresh forgery alert | The protected incident creates a reporting side channel, not execution authority; no real Gmail delivery is claimed. |
 | 9–12 | Retry the same valid action; inspect balances and two postings; explain the final source check | Repeating an action does not debit twice. A VERIFIED flag is insufficient; settlement consumes the exact checked snapshot. |
 | 12–14 | Actual JSON results | These measure a specific local setup, not the capacity of a payment network. |
 | 14–16 | Production architecture | KMS/HSM, independent authority and evidence retention are explicit requirements beyond the local demo. |
@@ -133,7 +143,7 @@ A separate recovery run confirmed two cases: after restart, the stopped processo
 
 **2. Can an attacker steal a valid MAC and change the recipient?** Recipient, amount, operation identity, ledger, type, time, correction reference and other required fields belong to the canonical bytes. The changed snapshot will not match the MAC and independent receipt.
 
-**3. What if the entire row disappears?** A standalone HMAC cannot detect that. The service retains an independent receipt before returning issuance, and inventory scanning reveals the missing record. Detection includes scan delay and a five-second publication window. The result is a discrepancy, not automatic proof of malicious intent.
+**3. What if the entire row disappears?** A standalone HMAC cannot detect that. The service retains an independent receipt before returning issuance, and inventory scanning reveals the missing record. Detection includes scan delay and a five-second grace measured from the authenticated operation's creation timestamp, not a guaranteed period after publication. The result is a discrepancy, not automatic proof of malicious intent.
 
 **4. What if the row changes immediately after the final check?** Settlement uses the checked snapshot already selected, not a new amount or recipient read from primary. The modification cannot change the postings. Later reconciliation detects the discrepancy. The design does not claim a primary lock throughout the entire settlement transaction.
 
@@ -162,6 +172,7 @@ Read in this order. Related tests reside in `src/test/java`:
 - [IssuanceService.java](../../tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java): receipt before response, retries and inventory. [LocalKeyVault.java](../../tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java): keys, rotation and signatures.
 - [Processor.java](../../transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java): `discover/reconcile`, `process`, `settle` and `relay` cover discovery, verification, settlement and outcome delivery.
 - [AuditLog.java](../../transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java) and [MerkleTree.java](../../transaction-security-module/src/main/java/com/demo/securityapp/crypto/MerkleTree.java): history, checkpoints and inclusion proofs.
+- [NotificationDispatcher.java](../../transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationDispatcher.java) and [SmtpNotificationSender.java](../../transaction-security-module/src/main/java/com/demo/securityapp/notification/SmtpNotificationSender.java): separate claimed delivery, retry and minimal email content. `AuditLog` owns atomic incident/notification creation.
 
 The [source layout guide](../reference/code-structure.md) distinguishes API DTOs, protocol models and services. The deck's embedded source citations reflect its generation-time layout; use this guide for current clickable source paths.
 

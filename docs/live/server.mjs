@@ -28,6 +28,7 @@ const redirects=new Map([
 for(const file of [
  'docs/evidence/local-verification-2026-09-06-final.json',
  'docs/evidence/notification-verification-2026-09-08.json',
+ 'docs/evidence/local-verification-2026-09-07.json',
  'docs/evidence/local-verification-2026-09-06.json','docs/evidence/local-recovery-2026-09-06.json','docs/evidence/live-lab-verification-2026-09-06.json','docs/evidence/protected-migration-2026-09-06.json',
  'docs/reference/architecture.md','docs/reference/architecture-decisions.md','docs/reference/implementation-status.md','docs/reference/glossary.md',
  'docs/evidence/local-verification-2026-09-05.json','docs/evidence/local-recovery-2026-09-05.json','docs/evidence/live-lab-verification-2026-09-05.json',
@@ -36,6 +37,9 @@ for(const file of [
  'account-transfer-app/src/main/java/com/demo/transferapp/service/TransferService.java',
  'tokenization-module/src/main/java/com/demo/integrity/crypto/CanonicalEncoder.java',
  'tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java','tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java',
+ 'transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationDispatcher.java',
+ 'transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationOutbox.java',
+ 'transaction-security-module/src/main/java/com/demo/securityapp/notification/SmtpNotificationSender.java',
  'transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java','transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java','transaction-security-module/src/main/java/com/demo/securityapp/crypto/MerkleTree.java'
 ])routes.set('/'+file,file);
 export function authorize(req,{port=PORT,capability},requireCapability=false){

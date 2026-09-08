@@ -77,6 +77,7 @@ transaction-security-module/src/main/java/com/demo/securityapp/
   audit/        Ordered audit history, checkpoints and proof assembly
   crypto/       Merkle tree operations
   delivery/     Delivery interface and embedded ActiveMQ adapter
+  notification/ Durable incident outbox, SMTP adapter, retries and isolated scheduler
   client/       Key-service gateway
   config/       Database and delivery wiring
   security/     Service authorization
@@ -136,6 +137,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\recovery.ps1
 The full suite checks protected funding, duplicate/conflicting retries, role boundaries, forgery, missing records, tampering/deletion after verification, rollback and delivery replay. Load success requires unique completed operations, correct protected balances/postings and durable audit outcomes, not simply successful HTTP submissions. New reports are written under ignored `.local`; inspect `passed` and restoration status. See the [runbook](docs/reference/running.md) for individual Node suites, fault hooks, ownership safeguards and migration.
 
 The package-layout revision passed 92 Java tests, 40 Node checks, 7 publication-validator tests and all 15 PostgreSQL scenarios. In run `2026-09-07T01-27-24-67e1f9c6`, all 2,400 scheduled load operations completed uniquely with correct protected accounting and audit, with zero transaction failures. However, steady completed throughput was **19.9636 TPS**, below the strict 20 TPS threshold with zero tolerance. The load gate and combined report therefore remain **FAILED**, not a fresh full acceptance pass. Normal-mode restoration passed. The retained raw report is under `.local/verification-2026-09-07T01-27-24-67e1f9c6/report.json`; private runtime evidence is not included in the documentation ZIP.
+
+The [sanitized September 7 report](docs/evidence/local-verification-2026-09-07.json) now makes that failed gate available without private runtime files. The September 8 incident-email implementation passed 137 Java tests in 19 suites, 44 Node checks and 18 PostgreSQL role-isolation checks before the publication update. Its [PostgreSQL-to-Mailpit run](docs/evidence/notification-verification-2026-09-08.json) passed valid/no-alert, forged/quarantined, repeated-identity and post-settlement-tampering cases. It did not run a new load benchmark, deliver to Gmail or test a production SMTP provider. These functional results do not supersede the latest throughput failure.
+
+The subsequent documentation/publication update passed **49 Node checks**, including regressions that publish failed reports honestly and keep latest throughput, historical passes and local notification results distinct. This is a separate post-publication check count, not a relabeling of the earlier 44-check implementation run or a new financial load test.
 
 The [September 6 final recorded run](docs/evidence/local-verification-2026-09-06-final.json) passed 86 Java tests, 15 PostgreSQL scenarios and 2,400 unique completed transfers at 20 offered TPS for 120 seconds, with zero failures and zero configured throughput tolerance. Steady completed throughput was 20.0000 TPS; whole-run throughput was 19.9173 TPS; p95 was 3,057 ms. Missing unpublished receipt detection took 32.96 seconds within the declared 120-second observation budget. These are preserved measurements of that dated run, not a new measurement of every later source change or a production SLA.
 
