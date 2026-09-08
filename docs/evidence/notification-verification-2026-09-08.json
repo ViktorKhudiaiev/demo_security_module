@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "runId": "2026-09-08T15-49-53.807Z-28014d6c",
+  "startedAt": "2026-09-08T15:49:53.809Z",
+  "passed": true,
+  "deliveryScope": "Local Mailpit capture only; no external email delivery.",
+  "checks": {
+    "preflight": {
+      "processorMode": "mailpit",
+      "servicesHealthy": true,
+      "mailpit": {
+        "running": true,
+        "loopbackOnly": true,
+        "relayOrForwardConfigured": false,
+        "version": "v1.31.1"
+      }
+    },
+    "valid": {
+      "completed": true,
+      "notificationRows": 0
+    },
+    "forged": {
+      "quarantined": true,
+      "protectedFinancialStateUnchanged": true,
+      "row": {
+        "operation_id": "5129c4cf-1e9b-4ebe-a55a-e1d312561ce6",
+        "event_id": "5900c89a-90a0-8dbe-8bd8-e35a6d951eb5",
+        "event_seq": 26062,
+        "reason": "No independent issuance receipt",
+        "attempts": 1,
+        "delivered_at_micros": 1788882605440000
+      },
+      "capturedMessages": 1,
+      "safeBodyVerified": true
+    },
+    "repeated": {
+      "sameNotificationRow": true,
+      "capturedMessages": 1,
+      "protectedFinancialStateUnchanged": true,
+      "observationSeconds": 5,
+      "limitation": "Normal-delivery observation only; SMTP remains at-least-once, not exactly-once."
+    },
+    "postSettlementTampering": {
+      "detected": true,
+      "originalCompletedResultPreserved": true,
+      "row": {
+        "operation_id": "7b9f8936-ecfc-481c-a555-2e9272c9e02f",
+        "event_id": "14227b1e-e536-8f67-a2e7-1b2a758cac8e",
+        "event_seq": 26064,
+        "reason": "Primary record differs from independent issuance receipt",
+        "attempts": 1,
+        "delivered_at_micros": 1788882629792000
+      },
+      "capturedMessages": 1,
+      "safeBodyVerified": true
+    }
+  },
+  "finishedAt": "2026-09-08T15:50:31.597Z",
+  "retention": "Fresh fixture manifest, financial evidence, source tamper and captured emails are retained. No data was deleted."
+}

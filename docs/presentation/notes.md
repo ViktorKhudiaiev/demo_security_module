@@ -1,6 +1,8 @@
 # Presenter notes
 
-Presentation: Verifiable Record Integrity Without a Blockchain. 14 slides, about 15–20 minutes plus questions.
+Presentation: Verifiable Record Integrity Without a Blockchain. 14 slides, about 15–20 minutes plus questions. Updated September 8, 2026.
+
+The notification implementation snapshot is https://github.com/ViktorKhudiaiev/demo_security_module/tree/e2e35de02abefdcee92f99be58381e53dfb62201. The dated article and public evidence snapshot is https://github.com/ViktorKhudiaiev/demo_security_module/tree/2dbad6441d3d08a879c976e73613c444d42bd561. Historical load evidence and current notification checks refer to distinct runs.
 
 ## 1. Verifiable Record Integrity Without a Blockchain
 
@@ -19,7 +21,7 @@ DBA means database administrator. Our attacker may modify, insert, delete and re
 Primary stores untrusted operation intents. Audit/Protected stores independent receipts, history and authoritative accounting under separate runtime roles. The processor JVM contains the persistent ActiveMQ broker and the Java verification/accounting workers. The processor is the trusted executor. The primary DBA must have no authority to change these protected components or obtain MAC-issuance permission.
 Bounded guarantee: primary administrative access alone is insufficient to execute a forged, modified or already executed operation. The assumptions on this slide are mandatory. Compromise of the common host, an application with issuance authority, or settlement changes the threat model.
 HMAC does not conceal data. It does not prevent DROP DATABASE or keep the system continuously available. Recovery requires backups and complementary infrastructure.
-The integrating application checks an individual user's right to transfer funds. We deliberately do not build another Identity Provider or require actorId inside this module. However, the application must protect its API and issuance credential. If the trusted application itself requests an improper transfer, a MAC does not understand that business meaning.
+The integrating application must check an individual user's right to transfer funds. The local demo enforces shared bearer service credentials, without implementing a human identity or account-entitlement system. We deliberately do not build another Identity Provider or require actorId inside this module. However, the application must protect its API and issuance credential. If the trusted application itself requests an improper transfer, a MAC does not understand that business meaning.
 Why two databases? Main is attacker-controlled. Audit/Protected stores both evidence and financial authority outside Main administration. Java calculates; SQL commits atomically. A passive audit log could not protect balances owned by a compromised Main DBA.
 Sources: docs/reference/architecture.md; docs/history/article-review-2026-09-05.md, R02, R08.
 
@@ -28,19 +30,20 @@ Sources: docs/reference/architecture.md; docs/history/article-review-2026-09-05.
 Three Java processes run on ports 8080, 8081 and 8082. Main PostgreSQL runs on 55431. Audit/Protected PostgreSQL runs on 55432 and holds evidence plus authoritative accounting under separate runtime roles. No third database is required.
 The key service commits issuance_receipts before returning the MAC. The application commits the operation and Primary outbox together. The processor dispatcher polls that outbox and sends a persistent UUID hint to ActiveMQ Classic 6.3.2 in the same JVM, using VM-only transport and a KahaDB journal. Primary acknowledgment follows broker persistence. The consumer commits a protected operation_jobs insert before acknowledging JMS.
 The processor resolves the independent receipt first, compares the source and verifies the HMAC through the key API, then re-reads and settles the exact checked snapshot. Java calculates; a protected SQL transaction commits balances, paired postings, result and durable outcome. The outcome relay records audit history and the Main projection. Reconciliation and Merkle checkpoints run independently.
+The reporting branch adds notification_outbox in the existing Audit/Protected database. On an incident, AuditLog commits both history and the first notification atomically. A separate email dispatcher in the processor JVM handles SMTP retries and a per-dispatcher rate cap. Mailpit runs separately as loopback-only test infrastructure on ports 1025 and 8025. It captures messages locally, without Gmail delivery. A configured authenticated SMTP provider is an optional deployment choice. This reporting path does not gate settlement.
 The broker buffers identifiers. It is not payment authorization, an independent failover node, or evidence of improved maximum capacity. Duplicate delivery is expected. No global transaction spans both databases and JMS. A Kafka adapter would need distinct offset/partition semantics.
 Sources: docs/reference/architecture.md; scripts/start.ps1; transaction-security-module/src/main/java/com/demo/securityapp/delivery/EmbeddedActiveMqDelivery.java. Apache VM transport: https://activemq.apache.org/components/classic/documentation/vm-transport-reference
 
 ## 4. Transfer execution path
 
 Timing: 1–1.5 minutes.
-Read from top to bottom. The integrating application has already checked business permission. Its service credential allows a MAC request. The key service validates the schema and commits an independent receipt before returning the response. This ensures that an authentically issued operation has an independent record even before primary publication.
+Read from top to bottom. Production integration must check business permission upstream. The local demo models this boundary with shared bearer service credentials, without an individual user-entitlement system. Its service credential allows a MAC request. The key service validates the schema and commits an independent receipt before returning the response. This ensures that an authentically issued operation has an independent record even before primary publication.
 The application commits the operation and source outbox in one transaction. The dispatcher persists a UUID in embedded ActiveMQ before acknowledging the Primary hint. The consumer commits a protected SQL job before committing JMS receipt acknowledgment. It obtains the receipt and checks the exact SignedOperation, HMAC and ledger domain. After rereading primary, it uses precisely the matching snapshot.
 Settlement executes a local atomic transaction containing postings, balances, the unique execution journal, result and outcome outbox. Atomic means that the database commits this entire set or none of it. It does not imply one transaction across both PostgreSQL databases and JMS.
 Outcome delivery to audit and projection updates in primary may lag. A durable outbox stores the delivery task together with the financial effect. Repeated delivery handles duplicates. The processor does not debit again merely because an HTTP response disappeared or the primary status has not caught up.
 In load acceptance, completion means more than HTTP 200. The harness checks protected COMPLETED status, the exact pair of postings, operation content and a relayed durable outcome.
 Likely question: why durable? Answer: a process loses memory when it stops, but a database-recorded job remains available after restart.
-Sources: tokenization-module/src/main/java/com/demo/keyservice/IssuanceService.java, issue; transaction-security-module/src/main/java/com/demo/securityapp/Processor.java, discover, process, settle, relay; scripts/load-evidence.mjs.
+Sources: tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java, issue; transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java, discover, process, settle, relay; scripts/load-evidence.mjs.
 
 ## 5. Canonical operation bytes
 
@@ -51,7 +54,7 @@ The fixed order of all 13 fields is domain, schemaVersion, keyId, id, ledgerId, 
 A UUID occupies 16 bytes. SchemaVersion is int32. Amount and timestamp are int64. Amount is positive, integral and denominated in minor currency units, without floating point. Time is exactly UTC Unix epoch microseconds. NULL has its own type tag 0 and length 0. The required relatedOperationId field must appear even when explicitly null. The implementation rejects an omitted field.
 UTF-8 specifies string encoding. Version 1 restricts identifiers to the permitted ASCII alphabet. It has no free-form Unicode text and no silent NFC normalization. Unsupported schemas fail validation.
 A golden test vector specifies concrete bytes, hash and MAC. The test key made of repeated 0b bytes must never serve as a runtime key.
-Sources: docs/reference/protocol.md, Operation commitment; tokenization-module/src/main/java/com/demo/integrity/CanonicalEncoder.java; tokenization-module/src/test/java/com/demo/integrity/CanonicalEncoderTest.java.
+Sources: docs/reference/protocol.md, Operation commitment; tokenization-module/src/main/java/com/demo/integrity/crypto/CanonicalEncoder.java; tokenization-module/src/test/java/com/demo/integrity/crypto/CanonicalEncoderTest.java.
 
 ## 6. HMAC and Ed25519 protect different objects
 
@@ -61,7 +64,7 @@ A holder of the symmetric HMAC key can generate and verify MACs. Our processor d
 Ed25519 is a separate asymmetric signature scheme. A private key signs a Merkle-log checkpoint, and a verifier uses the public key. The signed object has its own domain-separated TLV structure. Individual operation status events do not each receive this signature. The operation continues to use HMAC.
 A verifier must obtain the expected public key through a trusted channel. Accepting any new key merely because it accompanies a signature lets an attacker bring a new key pair. The signature by itself does not prove that the log is fresh, that the clock is correct, or that a human actually performed the business event.
 Locally, software files with OS access controls hold the keys. HMAC rotation already works: new operations use the active keyId, and retained older keys verify history. A real KMS or HSM is not integrated. KMS is a managed service for key operations. HSM is a hardware security module. Both require actual integration and independent governance.
-Sources: docs/reference/protocol.md; tokenization-module/src/main/java/com/demo/keyservice/LocalKeyVault.java; tokenization-module/src/main/java/com/demo/keyservice/ServiceAuthenticationFilter.java; docs/history/article-review-2026-09-05.md, R04–R08.
+Sources: docs/reference/protocol.md; tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java; tokenization-module/src/main/java/com/demo/keyservice/security/ServiceAuthenticationFilter.java; docs/history/article-review-2026-09-05.md, R04–R08.
 
 ## 7. TOCTOU protection at execution
 
@@ -72,18 +75,18 @@ If the comparison succeeds, the processor passes that exact finalSnapshot into s
 We do not claim to lock a primary row throughout a transaction in another database. We do not claim distributed ACID. The safeguard concerns exactly which data the executor consumes.
 Likely question: can we compare the hash and then query the amount again? Answer: no. That would recreate the race. Execution must consume the same checked snapshot.
 Evidence: the PostgreSQL scenario tamper-after-verification-before-use-is-quarantined paused processing after verification, modified the row, and obtained quarantine. A separate scenario tested deletion after verification. The normal configuration disables these test pauses.
-Sources: transaction-security-module/src/main/java/com/demo/securityapp/Processor.java, process and settle; docs/evidence/local-verification-2026-09-06.json, tamper-after-verification-before-use-is-quarantined and delete-after-verification-is-quarantined; docs/history/article-review-2026-09-05.md, R01.
+Sources: transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java, process and settle; docs/evidence/local-verification-2026-09-06.json, tamper-after-verification-before-use-is-quarantined and delete-after-verification-is-quarantined; docs/history/article-review-2026-09-05.md, R01.
 
 ## 8. Missing operations and audit history
 
 Timing: 1.5–2 minutes.
 A standalone row HMAC detects modification but cannot detect the complete absence of the row. Checking only surviving records is insufficient. An auto-increment gap also fails to prove an attack because legitimate sequence allocation can create gaps.
 The first path concerns the primary database. The key service saves an issuance receipt before returning the MAC. The processor scans independent issuance inventory and compares it with primary. This detects a missing issued operation even before anyone observed its source outbox. The inventory sequence is a cursor, not a cryptographic completeness proof.
-The check is periodic. The code allows a five-second publication grace window, and further delay depends on inventory scanning. Issued-but-missing means a discrepancy. Either malicious deletion or an application crash before primary publication can cause it. Intent cannot be inferred automatically.
+The check is periodic. The five-second grace threshold is measured from the authenticated Operation.createdAtMicros, not the receipt commit or primary publication. Slow issuance can consume that interval. Further detection delay depends on inventory scanning, so this is not a five-second detection SLA. Issued-but-missing means a discrepancy. Either malicious deletion or an application crash before primary publication can cause it. Intent cannot be inferred automatically.
 The second path concerns audit history. A Merkle tree links event hashes into a root. A signed checkpoint binds logId, treeSize, root, keyId, version and time. An inclusion proof establishes membership relative to that root. Signature verification requires a trusted public key.
 The demo retains checkpoint files outside audit DB. This database-external anchor allows comparison with a previously retained state. However, a self-consistent old log does not prove freshness without a trusted recent expectation. Files on the same host cannot resist the host administrator.
 The demo does not implement operation MAC chaining, a compact consistency-proof API, a scalable incremental tree, a timestamp authority or a public witness. Verification currently reconstructs the whole tree or prefix. A root signature does not replace content verification or trust in the path that supplied the root.
-Sources: docs/reference/protocol.md, Issuance and retries, Signed checkpoints; transaction-security-module/src/main/java/com/demo/securityapp/Processor.java, reconcile; transaction-security-module/src/main/java/com/demo/securityapp/AuditLog.java; docs/history/article-review-2026-09-05.md, R03–R04.
+Sources: docs/reference/protocol.md, Issuance and retries, Signed checkpoints; transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java, reconcile; transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java; docs/history/article-review-2026-09-05.md, R03–R04.
 
 ## 9. Protected settlement invariants
 
@@ -95,7 +98,7 @@ Idempotency means an identical business request with the same key returns the or
 The injected failure after the debit posting rolls back the entire SQL transaction. A subsequent retry leaves exactly two final postings rather than three.
 Primary balances and holds are not authoritative. A fabricated COMPLETED status cannot authorize or establish settlement. Authoritative financial state remains in the protected accounting tables in Audit DB.
 Likely question: does "exactly once" apply to the whole network? Answer: the design ensures one financial effect under retries inside this protected settlement model. Network messages and delivery may repeat. External payment systems require their own idempotency and reconciliation.
-Sources: transaction-security-module/src/main/java/com/demo/securityapp/Processor.java, settle, businessRejection, outcome, relay; docs/reference/protocol.md, Issuance and retries; docs/evidence/local-verification-2026-09-06.json.
+Sources: transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java, settle, businessRejection, outcome, relay; docs/reference/protocol.md, Issuance and retries; docs/evidence/local-verification-2026-09-06.json.
 
 ## 10. Funding and corrections preserve evidence
 
@@ -105,10 +108,21 @@ Treasury is the balancing system account in this simulation. It may have a negat
 Correcting a completed transfer preserves the original operation. A new REVERSAL first swaps sender and recipient exactly, retains the original amount and currency, and references the original operation. Once reversal completes, a CORRECTION can carry the corrected business data and reference that same original.
 Both references form part of authenticated canonical bytes. The implementation rejects duplicate reversals or corrections of the original and rejects reversal of a reversal. The two correction steps do not form one atomic transaction. Compensation may fail when the refunding account lacks funds or has a hold.
 Do not describe a pending operation as atomically cancelled: cancellation or supersession before settlement is not implemented in this version. The slide states that limitation.
-Sources: docs/reference/protocol.md, Operation commitment; transaction-security-module/src/main/java/com/demo/securityapp/Processor.java, businessRejection, register; docs/history/article-review-2026-09-05.md, R09–R10.
+Sources: docs/reference/protocol.md, Operation commitment; transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java, businessRejection, register; docs/history/article-review-2026-09-05.md, R09–R10.
 
-## 11. Recovery after real local process outages
+## 11. Incident email notifications
 
+Timing: about 1.5 minutes, with historical recovery detail available for questions.
+An INTEGRITY_INCIDENT causes the processor to append protected audit evidence and insert the first notification_outbox row for that operation in one Audit/Protected SQL transaction. A failure of either insert rolls back both. Separate runtime grants permit audit insertion and delivery-state updates while denying key and accounting roles the ability to enqueue notifications.
+A dedicated scheduler claims pending notifications with a lease, attempts email delivery and stores acceptance or a retry marker. It does not contact SMTP while checking or settling a transfer. SMTP outage cannot authorize invalid content and does not gate financial processing. Failure to persist protected audit evidence remains a separate storage failure.
+Messages contain an incident reference, operation UUID, audit sequence, observation time and an allowlisted reason. Arbitrary incident detail remains in protected audit evidence. The sender uses a configured recipient list through BCC, a fixed subject, plain text and a stable message identifier. It excludes accounts, amounts, source payloads and credentials.
+Normal startup uses loopback-only Mailpit to capture messages locally. This is not Gmail delivery. Real SMTP requires explicit authentication, TLS and an authorized sender and recipients. The private test recipient and SMTP secrets stay outside the repository and distribution package.
+Repeated observations of one operation preserve later audit history but do not create another initial notification. SMTP delivery remains at least once. A crash between provider acceptance and the protected delivery update can cause a duplicate with the same Event ID. A successful SMTP response alone does not prove inbox delivery or human review.
+The September 8 PostgreSQL-to-Mailpit run observed four cases: a valid operation with no alert, a fabricated row with quarantine and one alert, repeated observation with the same notification, and post-settlement tampering with one alert and the original completed outcome unchanged. The repeated case covers five seconds of normal delivery, not an exactly-once guarantee.
+A discrepancy is not proof of fraud or identity. An alert detected after settlement does not mean that the original authenticated operation never settled. The operator must review the trusted outcome and evidence.
+Notification sources: docs/reference/notifications.md; docs/evidence/notification-verification-2026-09-08.json; transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java; transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationDispatcher.java; transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationOutbox.java; transaction-security-module/src/main/java/com/demo/securityapp/notification/SmtpNotificationSender.java.
+
+Historical recovery evidence, September 6, 2026. Two local JVM outage cases passed. These are separate from the September 8 notification run:
 Timing: 1.5 minutes.
 The availability policy fails closed: an unavailable required check does not authorize an unverified payment. Confirmed invalid content enters quarantine. A temporary dependency failure leaves durable retry state where retry is appropriate. Quarantine applies to the operation. Automatically holding the named recipient requires a separate policy because an attacker could name an innocent account to cause denial of service. Protected account holds exist as a separate administrative action.
 The first real local test stopped the processor JVM. The initial HTTP request returned 503 even though the independent receipt and primary publication already existed. During the outage there were zero postings. After restart, the processor picked up the operation without client republication and completed it. A retry with the same idempotency key caused no second effect. In this case, 503 conveys uncertainty to the client rather than a proven abort.
@@ -117,17 +131,18 @@ Each successful operation has two postings. The report checks exact payloads, ac
 These September 6 tests use the embedded broker path. They do not isolate a pending broker-message crash. They are Windows process-stop tests. They do not represent host power loss, PostgreSQL failure, a network partition, PITR or production failover. Key-service loss during an already verified in-flight settlement was not tested and does not imply immediate cancellation of that execution.
 Sources: docs/evidence/local-recovery-2026-09-06.json; scripts/recovery.mjs; scripts/recovery-stop-service.ps1; docs/reference/architecture.md.
 
-## 12. Measured workload: 2,400 unique transfers
 
-Timing: 1.5 minutes.
-These results are from September 6, 2026, with two PostgreSQL databases and embedded ActiveMQ. A later worker-admission failure-path review added two regression tests; the recorded load run contained 83 Java tests. The test used one Windows machine with an Intel Core i7-13620H, 16 logical CPUs, about 16 GB of memory, Docker PostgreSQL and software keys. No cloud KMS or real payment network was in the critical path.
-The generator offered exactly 20 transfers per second for 120 seconds across eight test accounts. All 2,400 unique operations completed with zero failures. Completion includes the protected result, exact paired postings, matching operation content and a relayed durable audit outcome. Balance checks passed.
-The 20.3091 TPS figure counts completions in the window after the first ten seconds of warmup, from second 10 through second 120. A finite completion window can differ slightly from the constant arrival rate because of its boundaries. Acceptance used zero configured throughput tolerance.
-The 19.9371 TPS figure includes the entire run with warmup and final drain. Drain is the time required to finish remaining work after arrivals stop. It was approximately 378 ms. Reporting both prevents a steady-window result from being mistaken for whole-run wall-clock throughput.
-A p95 of 3989.839 ms means that approximately 95% of measured end-to-end completion latencies were at or below that value. It is not single-HMAC latency or peak database capacity.
-The standard Maven verify run passed 83 Java tests with no failures, errors or skips. Separately, 15 functional/adversarial PostgreSQL scenarios and two real JVM outage cases passed. These categories are reported separately.
-The experiment did not measure maximum capacity, comparative cost, a ten-minute soak or a million records. It supports the stated local workload rather than a production SLA.
-Sources: docs/evidence/local-verification-2026-09-06.json, javaTests, scenarios, load; docs/evidence/local-recovery-2026-09-06.json; docs/reference/implementation-status.md.
+## 12. Measured workload and current checks
+
+Timing: about 1.5 minutes.
+The most recent full load run is September 7, 2026, before incident email support. It offered 20 transfers per second for 120 seconds. All 2,400 operations completed with zero operation failures, and protected accounting and durable audit checks passed. The steady completion window measured 19.963636363636365 TPS. The strict throughput requirement was at least 20 TPS with zero tolerance. Therefore the load and combined acceptance result FAILED. Do not round this measurement to 20 TPS or describe the acceptance result as a pass.
+The September 7 run passed 92 Java tests in 14 suites and 15 PostgreSQL scenarios. Its whole-run rate was 19.940251926438954 TPS. End-to-end latency p95 was 668.2416 ms and p99 was 791.458 ms, shown rounded to 668 and 791 ms on the slide. These are completion latencies, not HMAC timings or peak database capacity.
+The historical initial September 6 run used 83 Java tests and passed its steady-window load gate at 20.3091 TPS. Its whole-run rate was 19.9371 TPS, with roughly 378 ms final drain and p95 3989.839 ms. A later worker-admission failure-path review added three regression tests. The separate final September 6 run passed 86 Java tests, 15 PostgreSQL scenarios and a load gate at exactly 20.0000 steady TPS. Its whole-run rate was 19.9173 TPS. These earlier passes remain historical evidence and do not supersede September 7's failed gate.
+The September 8 notification implementation passed 137 Java tests in 19 suites, with zero failures, errors or skips. It also passed 44 Node checks, 18 live PostgreSQL role-isolation checks and the four local PostgreSQL-to-Mailpit cases. Those figures describe the pre-publication notification stage. Subsequent documentation/publication regressions are separate checks. No new load benchmark or production SMTP delivery occurred in this stage.
+The load environment was one Windows machine with an Intel Core i7-13620H, 16 logical CPUs, approximately 16 GB RAM, two Docker PostgreSQL databases, embedded ActiveMQ and software keys. Neither a real payment network nor cloud KMS participated.
+The experiment does not establish maximum capacity, comparative cost, email capacity, a long soak, a million-record audit or a production SLA. Keep failed and successful reports with their dates, code context and exact acceptance criteria.
+Sources: docs/evidence/local-verification-2026-09-07.json; docs/evidence/local-verification-2026-09-06.json; docs/evidence/local-verification-2026-09-06-final.json; docs/evidence/notification-verification-2026-09-08.json; docs/reference/notifications.md; README.md.
+
 
 ## 13. Production target: independent control boundaries
 
@@ -145,7 +160,9 @@ Sources: docs/reference/architecture.md; docs/reference/implementation-status.md
 Timing: 1–1.5 minutes, followed by questions.
 For a potential customer, begin with the execution boundary rather than promising to plug in one library. Locate the business authorization decision and the point where money or another protected resource actually changes. Then define immutable fields and versioning, the application's identity and authorization responsibilities, and authoritative settlement beyond the primary DBA.
 The module provides content authentication, an independent receipt, reconciliation, protected execution in the local prototype and audit checkpoints. Customer integration supplies user permissions, evidence of external funding, real payment APIs, operations and independent domain ownership. No universal adapter for MySQL or arbitrary database schemas is implemented.
-A short demonstration can show a normal transfer and identical-key retry, a fabricated primary row, and a change after verification. Show the protected result and postings, not just an HTTP response. For a reliable presentation, retained reports can serve as recorded evidence without presenting them as a newly executed live run.
-Local commands are documented in docs/reference/running.md. verify-local.ps1 runs tests, scenarios and load. recovery.ps1 really stops services and must run separately, without a concurrent demonstration. It should not start unexpectedly during a customer meeting. Never share .local: it contains secrets and key material. Share the sanitized JSON under docs/evidence and the prepared documents.
+A short demonstration can show a normal transfer and identical-key retry, a fabricated primary row with its captured alert, and tampering after settlement with human review of the original protected result. The post-verification pause scenario remains available in the test harness. Show the protected result and postings, not just an HTTP response. For a reliable presentation, retained reports can serve as recorded evidence without presenting them as a newly executed live run.
+Local commands are documented in docs/reference/running.md. verify-local.ps1 runs tests, scenarios and load. recovery.ps1 really stops services and must run separately, without a concurrent demonstration. It should not start unexpectedly during a customer meeting. Never share .local: it contains secrets and key material. Share the sanitized JSON under docs/evidence and the prepared documents. Notification evidence is a local Mailpit capture. Do not claim public email delivery or a new load benchmark.
 If asked about the guarantee, repeat the exact threat model from slide 2. If asked about novelty, explain the engineering integration and reproducible tests without claiming new cryptography. If asked for the next step, propose a bounded proof of concept around one customer business operation with explicit permissions and acceptance criteria.
-Sources: docs/reference/architecture.md; docs/reference/running.md; docs/reference/implementation-status.md; scripts/scenarios.mjs.
+Sources: docs/reference/architecture.md; docs/reference/running.md; docs/reference/implementation-status.md; scripts/scenarios.mjs; docs/reference/notifications.md; docs/evidence/notification-verification-2026-09-08.json.
+Implementation snapshot: https://github.com/ViktorKhudiaiev/demo_security_module/tree/e2e35de02abefdcee92f99be58381e53dfb62201
+Article and evidence snapshot: https://github.com/ViktorKhudiaiev/demo_security_module/tree/2dbad6441d3d08a879c976e73613c444d42bd561

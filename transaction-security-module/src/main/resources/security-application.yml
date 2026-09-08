@@ -8,6 +8,17 @@ spring:
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
 processor:
+  notifications:
+    mode: ${NOTIFICATION_MODE:disabled}
+    from: ${NOTIFICATION_FROM:}
+    recipients: ${NOTIFICATION_RECIPIENTS:}
+    max-per-minute: ${NOTIFICATION_MAX_PER_MINUTE:30}
+    smtp:
+      host: ${NOTIFICATION_SMTP_HOST:127.0.0.1}
+      port: ${NOTIFICATION_SMTP_PORT:1025}
+      username: ${NOTIFICATION_SMTP_USERNAME:}
+      password: ${NOTIFICATION_SMTP_PASSWORD:}
+      tls: ${NOTIFICATION_SMTP_TLS:starttls}
   broker:
     directory: ${BROKER_DIRECTORY}
   scheduling-enabled: ${PROCESSOR_SCHEDULING_ENABLED:true}

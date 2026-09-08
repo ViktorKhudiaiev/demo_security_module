@@ -12,6 +12,7 @@ The repository contains three Java service modules and an offline documentation 
 | 4 | [IssuanceService](../../tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java) and [LocalKeyVault](../../tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java) | Independent receipt before response, issuance retries, local keys, rotation and checkpoint signing |
 | 5 | [Scheduler](../../transaction-security-module/src/main/java/com/demo/securityapp/scheduling/Scheduler.java), [Processor](../../transaction-security-module/src/main/java/com/demo/securityapp/service/Processor.java) and [OperationDelivery](../../transaction-security-module/src/main/java/com/demo/securityapp/delivery/OperationDelivery.java) | Periodic dispatch/reconciliation, persistent delivery, verification and protected settlement |
 | 6 | [AuditLog](../../transaction-security-module/src/main/java/com/demo/securityapp/audit/AuditLog.java) and [MerkleTree](../../transaction-security-module/src/main/java/com/demo/securityapp/crypto/MerkleTree.java) | Ordered history, checkpoint handling and inclusion proofs |
+| Incident side path | [NotificationOutbox](../../transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationOutbox.java), [NotificationDispatcher](../../transaction-security-module/src/main/java/com/demo/securityapp/notification/NotificationDispatcher.java) and [SmtpNotificationSender](../../transaction-security-module/src/main/java/com/demo/securityapp/notification/SmtpNotificationSender.java) | Durable first alert per operation, fenced retry claims and minimal plain-text SMTP delivery outside financial execution |
 
 Follow `Processor`'s discovery/reconciliation, processing, settlement and outcome-relay methods alongside [the numbered architecture flow](architecture.md#delivery-and-execution-order). VERIFIED is an audit event, not permission to execute an arbitrary later version of the source row. Processing binds the financial effect to the checked immutable snapshot and a unique operation identity.
 
@@ -68,12 +69,15 @@ This vault is the demo implementation. The production architecture calls for ind
 | `audit` | `AuditLog`: ordered events, audit health, checkpoints and proof assembly |
 | `crypto` | `MerkleTree`: hashing and inclusion-proof operations |
 | `delivery` | `OperationDelivery`, `EmbeddedActiveMqDelivery`: delivery contract and persistent local broker adapter |
+| `notification` | `IncidentNotification`, `NotificationStatus`, `NotificationOutbox`, `NotificationDispatcher`, `NotificationSender`, `SmtpNotificationSender`, `NotificationSettings`, `NotificationConfiguration`, `NotificationScheduling`: incident messages, durable claims, SMTP, validated settings and independent scheduling |
 | `client` | `KeyGateway`: key-service adapter |
 | `config` | `DatabaseConfig`, `DeliveryConfiguration`: SQL pools/transactions and delivery wiring |
 | `security` | `ServiceAuthorization`: internal API role checks |
 | `scheduling` | `Scheduler`: periodic processing triggers |
 
 The `delivery` boundary is explicit so broker-specific work is separate from verification/accounting. A different broker still needs a reviewed adapter with matching acknowledgement, durability and retry semantics; Kafka is not an implemented configuration-only substitution.
+
+The `notification` package is a separate side channel, not part of the ActiveMQ financial-delivery adapter. `AuditLog` atomically inserts the initial notification with an integrity incident, and `NotificationDispatcher` sends only after its protected claim transaction commits. SMTP availability is not an execution gate. The immutable `IncidentNotification` record describes a persisted delivery item; `NotificationStatus` is an operator-only status DTO. Both are intentionally located with their cohesive notification subsystem rather than duplicated in another package. See [notification configuration and guarantees](notifications.md).
 
 ## DTO, protocol model or database entity?
 
@@ -103,6 +107,7 @@ The project uses Spring `JdbcTemplate` and `TransactionTemplate`, not JPA/Hibern
 | [key-schema.sql](../../tokenization-module/src/main/resources/key-schema.sql) | Audit/Protected | Independent issuance receipts |
 | [audit-schema.sql](../../transaction-security-module/src/main/resources/audit-schema.sql) | Audit/Protected | Ordered audit history and checkpoints |
 | [settlement-schema.sql](../../transaction-security-module/src/main/resources/settlement-schema.sql) | Audit/Protected | Authoritative accounts, jobs, journal/postings, results and durable outcome work |
+| [notification-schema.sql](../../transaction-security-module/src/main/resources/notification-schema.sql) | Audit/Protected | Additive incident-delivery outbox, unique operation identity, attempts, expiring claim and SMTP-accepted marker |
 
 `settlementDb` is a logical connection pool using a separate restricted role in the same protected database. It does not mean a third PostgreSQL instance. The separate roles are retained even though accounting and audit share one physical protected store; that store's administrator remains trusted. Java performs calculations while SQL transactions and constraints enforce atomicity and uniqueness.
 
@@ -112,4 +117,4 @@ SQL remains next to the use case that owns the transaction boundary. Keeping deb
 
 Java tests live under each module's `src/test/java`; package-local tests follow their production responsibility where appropriate, while cross-layer integration tests may remain at a service root. Resource schemas stay under `src/main/resources`. Startup/fault/load scripts remain under `scripts`; the optional browser lab and documentation maintenance tools live under `docs/live` and `docs/build`.
 
-Use [the runbook](running.md) for build, test, startup and recovery commands. Read [dated evidence](../evidence/local-verification-2026-09-06-final.json) as evidence of its original run, not automatic certification of a later refactor. Source moves must preserve wire field names, canonical bytes, SQL schemas and runtime authorization, and must be followed by compilation and regression tests.
+Use [the runbook](running.md) for build, test, startup and recovery commands. Read [the latest failed throughput evidence](../evidence/local-verification-2026-09-07.json), [historical successful run](../evidence/local-verification-2026-09-06-final.json) and [notification functionality](../evidence/notification-verification-2026-09-08.json) separately. A result describes its original run, not automatic certification of a later refactor. Source moves must preserve wire field names, canonical bytes, SQL schemas and runtime authorization, and must be followed by compilation and regression tests.

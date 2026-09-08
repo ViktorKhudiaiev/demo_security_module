@@ -1,8 +1,11 @@
 """Typeset the authored article. Input is locally rendered Markdown, not remote HTML."""
 from pathlib import Path
+import argparse
 from html import escape
 from html.parser import HTMLParser
+import posixpath
 import re
+from urllib.parse import urlsplit
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
 from reportlab.lib.styles import ParagraphStyle
@@ -14,6 +17,12 @@ from reportlab.lib.pagesizes import A4
 from pypdf import PdfReader
 
 ROOT=Path(__file__).resolve().parents[2]
+arguments=argparse.ArgumentParser(description=__doc__)
+arguments.add_argument('--source-revision',required=True,help='Full Git commit containing the published Markdown and evidence')
+source_revision=arguments.parse_args().source_revision
+if not re.fullmatch(r'[0-9a-f]{40}',source_revision):
+    raise ValueError('An explicit full source commit is required for PDF reference links')
+repository='https://github.com/ViktorKhudiaiev/demo_security_module'
 BUILD=ROOT/'.local/artifact-qa/pdfs/publication'
 OUT=ROOT/'docs/article/article.pdf'
 OUT.parent.mkdir(parents=True,exist_ok=True)
@@ -43,6 +52,13 @@ def inline(n):
     if n.tag=='code':return '<font name="Courier" size="8.8">'+content+'</font>'
     if n.tag=='a':
         href=n.attrs.get('href','')
+        parsed=urlsplit(href)
+        if not parsed.scheme and not parsed.netloc and parsed.path:
+            target=posixpath.normpath(posixpath.join('docs/article',parsed.path))
+            if target.startswith('../') or target.startswith('/'):
+                raise ValueError('Article link escapes the repository')
+            href=f'{repository}/blob/{source_revision}/{target}'
+            if parsed.fragment:href+='#'+parsed.fragment
         return '<link href="'+escape(href,quote=True)+'" color="#215acc">'+content+'</link>' if href.startswith('https://') else content
     if n.tag=='br':return '<br/>'
     return content
@@ -100,7 +116,10 @@ for node in parser.root.children:
 doc=SimpleDocTemplate(str(OUT),pagesize=A4,rightMargin=right,leftMargin=left,topMargin=58,bottomMargin=51,title='Verifiable Record Integrity Without a Blockchain',author='Viktor Khudiaiev',subject='Authenticated PostgreSQL execution and independently retained evidence',pageCompression=1)
 doc.build(story,canvasmaker=NumberedCanvas)
 r=PdfReader(str(OUT));text='\n'.join(p.extract_text() for p in r.pages)
-for required in ['20.0091','19.9181','2,400','709','microseconds','five-second','Ed25519','settlement']:
+for required in ['20.0091','19.9181','2,400','709','microseconds','five-second','Ed25519','settlement','19.9636','137','Mailpit']:
     if required not in text:raise RuntimeError('Missing PDF content '+required)
 if '[repository URL]' in text:raise RuntimeError('Unresolved repository placeholder')
+links=[annotation.get_object().get('/A',{}).get('/URI','') for page in r.pages for annotation in page.get('/Annots',[])]
+if not any(f'/blob/{source_revision}/docs/evidence/local-verification-2026-09-07.json' in link for link in links):
+    raise RuntimeError('PDF is missing the immutable latest load evidence reference')
 print(f'Created {OUT.name}: {len(r.pages)} pages, {len(text.split())} extracted words')

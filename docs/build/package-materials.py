@@ -22,6 +22,9 @@ FILES = [
     'docs/reference/running.md',
     'docs/reference/contributing.md',
     'docs/reference/code-structure.md',
+    'docs/reference/notifications.md',
+    'docs/evidence/local-verification-2026-09-07.json',
+    'docs/evidence/notification-verification-2026-09-08.json',
     'docs/evidence/local-verification-2026-09-06-final.json',
     'docs/evidence/local-verification-2026-09-06.json',
     'docs/evidence/local-recovery-2026-09-06.json',
@@ -122,7 +125,9 @@ References to omitted code appear as labels with paths in the full source checko
   slides with detailed speaker notes in PowerPoint notes view.
 - docs/presentation/notes.md — the same talk notes separately.
 - docs/presentation/guide.html — Rehearsal and Q&A handbook.
-- docs/evidence/*.json — retained verification, recovery and Live Lab reports.
+- docs/reference/notifications.md — incident email setup, retries and capture limits.
+- docs/evidence/*.json — dated verification, recovery, Live Lab and notification reports,
+  including the latest strict-throughput failure rather than only historical passes.
 - docs/reference/protocol.md — exact encoding and key-custody protocol.
 - CanonicalEncoderTest.java under tokenization-module/src/test — public golden
   vectors only. Its repeated 0b test key is intentionally public, never a runtime key.
@@ -132,16 +137,27 @@ References to omitted code appear as labels with paths in the full source checko
 
 The package contains no service binaries, databases, real secret keys, credentials
 or .local directory. Public test constants are not deployment credentials.
-The workload was offered at 20 TPS for 120 seconds: 2,400 unique completions,
-zero failures; 20.3091 steady completed TPS and 19.9371 whole-run TPS. This is
-September 6 two-database / ActiveMQ evidence from one local software-key Windows host, not a production SLA.
+The latest full load run, September 7, offered 20 TPS for 120 seconds and completed
+all 2,400 unique operations with correct protected accounting and audit, with zero
+transaction failures. Steady throughput was 19.9636 TPS, below the strict 20 TPS
+threshold with zero tolerance: load and combined acceptance FAILED. Whole-run
+throughput was 19.9403 TPS; p95 was 668 ms. Historical September 6 successes remain
+separate dated evidence. These are local software-key Windows measurements, not a
+production SLA or a new benchmark of the email-notification revision.
+
+The September 8 notification revision passed 137 Java tests, 44 Node tests and
+18 PostgreSQL role checks, plus four live notification scenarios. Two incident
+messages were captured by local Mailpit; no external Gmail delivery was tested.
+SMTP acceptance is not inbox delivery, and retry after an ambiguous failure can
+duplicate an email. Notification delivery is a side channel, not an execution gate.
 
 The production architecture is a target, not deployed infrastructure. Links to
 external RFCs and vendor documentation require Internet when opened. Offline
 content and the teaching model themselves do not require those sites.
 
-No venue-specific conference template has been applied. No public repository URL
-has been invented. The original source article has not been overwritten.
+No venue-specific conference template has been applied. The source repository is
+https://github.com/ViktorKhudiaiev/demo_security_module. This package updates the
+repository article, not the separately supplied original source PDF.
 '''
 contents['README_READ_FIRST.md'] = readme.encode('utf-8')
 contents['START_HERE.html'] = '''<!doctype html><html lang="en"><head>

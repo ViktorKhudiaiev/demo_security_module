@@ -87,6 +87,7 @@ The integration runner uses only the helper's dedicated fixtures and writes a ne
 | Processor | `127.0.0.1:8082` | `primary_processor`, `audit_processor`, `settlement_processor` |
 | Primary PostgreSQL | `127.0.0.1:55431` | Separate primary database instance |
 | Audit/Protected PostgreSQL | `127.0.0.1:55432` | One protected instance for issuance, audit history and authoritative accounting; separate runtime roles |
+| Mailpit capture, local notification mode | SMTP `127.0.0.1:1025`; web inbox `127.0.0.1:8025` | No financial database identity; local email capture only |
 
 Only two PostgreSQL instances run in the default profile. `settlement_processor` connects to accounting tables in Audit/Protected; the logical `SETTLEMENT_URL` setting does not imply a separate server. Port `55433` belongs only to the retained legacy three-database installation, not the current default architecture.
 
@@ -97,6 +98,8 @@ The host/Windows/Docker administrator can still read process memory, local key f
 Startup supports `-EnableTestFaults` solely for fault-injection tests. It is off by default. Stop the application and start again without this flag before presenting it. `start.ps1 -SkipBuild` reuses live JVMs without changing their settings; startup with a build explicitly stops and replaces them.
 
 ## Reading the load result
+
+The latest [published throughput result](../evidence/local-verification-2026-09-07.json) failed the strict 20 TPS gate at 19.9636 TPS, although all 2,400 operations completed correctly. The subsequent September 8 email implementation was functionally tested, not load-tested. Historical successful measurements must not be presented as acceptance of later changes.
 
 Each run creates fresh test accounts and simulated protected funding. It does not modify or delete unrelated accounts. Evidence is stored in `.local/load-<timestamp>-<id>/`:
 
@@ -141,3 +144,18 @@ The default Compose profile runs only `primary-db` and `audit-db`. Accounting ta
 For an existing three-DB installation, stop the Live Lab, then run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\migrate-protected-db.ps1`. The script stops only tracked JVMs, verifies database identities, backs up both protected stores, copies seven tables without overwrite, compares rows and schema, then stops the legacy container without deleting its volume. A failed post-restore check requires explicit reviewed `-ResumeReport <local-report-path>`; it never re-imports existing tables. After new accounting writes, a rollback cannot blindly switch to stale legacy balances.
 
 The broker starts automatically in the processor JVM. `BROKER_DIRECTORY` points to protected `.local/activemq`; it is not a build directory. No broker TCP port or console is exposed. Do not delete this journal while processing or include it in release packages. Broker failure defers publication; durable protected jobs remain the execution authority.
+
+## Incident email capture and testing
+
+Normal startup selects local Mailpit capture unless private notification configuration overrides it. Open `http://127.0.0.1:8025` after the stack starts. A public recipient address in configuration does not make a captured message reach Gmail. Both the SMTP listener and inbox are bound to loopback; do not publish them. Read [notification setup](notifications.md#configuration) for `.local/notifications.json`, environment precedence, safe defaults, real SMTP requirements and backlog semantics.
+
+`notification-schema.sql` is an additive, separately checksummed schema in Audit/Protected. It does not replace existing schema checksums, reset balances or erase audit history. The initial incident and notification commit together; delivery runs outside accounting transactions. Operator-only `GET /internal/notifications/status` reports mode and delivery backlog without exposing recipients or credentials. SMTP-accepted counts do not establish actual inbox delivery.
+
+With the healthy local capture stack running, the dedicated fixture-scoped integration can be repeated:
+
+```powershell
+. .\scripts\common.ps1
+& (Get-DemoNode) .\scripts\verify-notifications.mjs
+```
+
+The harness verifies valid/no-alert, forged/quarantined, repeated-identity and post-settlement-tampering cases. It refuses real SMTP mode and checks that Mailpit is not configured to relay/forward. It preserves its fixtures, financial evidence and captured messages and does not overwrite the interactive Live Lab's fixture state. The [September 8 report](../evidence/notification-verification-2026-09-08.json) passed all four cases. That run did not interrupt SMTP, test a real provider or rerun throughput; lease/retry/rollback behavior has separate automated tests. Do not run this harness alongside another test, a presentation or a load run.

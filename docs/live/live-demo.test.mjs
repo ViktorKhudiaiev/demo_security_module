@@ -74,7 +74,7 @@ test('actual HTTP server is read-only on GET and exposes only authenticated fixe
  }
  const page=await fetch(base+'/docs/live/index.html');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/frame-ancestors 'none'/);assert.equal(page.headers.get('access-control-allow-origin'),null);
  for(const route of ['/docs/index.html','/docs/presentation/guide.html','/docs/article/index.html']){const r=await fetch(base+route);assert.equal(r.status,200);const html=await r.text();for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))assert.ok(r.headers.get('content-security-policy').includes('sha256-'+createHash('sha256').update(script[1]).digest('base64')));assert.ok(!html.includes('onclick="'));}
- for(const route of ['/docs/evidence/live-lab-verification-2026-09-05.json','/docs/reference/protocol.md'])assert.equal((await fetch(base+route)).status,200);
+ for(const route of ['/docs/evidence/live-lab-verification-2026-09-05.json','/docs/reference/protocol.md','/docs/evidence/local-verification-2026-09-07.json','/docs/evidence/notification-verification-2026-09-08.json','/docs/reference/notifications.md'])assert.equal((await fetch(base+route)).status,200);
  const guide=await (await fetch(base+'/docs/presentation/guide.html')).text();
  for(const match of guide.matchAll(/href="([^"]+\.java)"/g)){
   const source=new URL(match[1],base+'/docs/presentation/guide.html');

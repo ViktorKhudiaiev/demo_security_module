@@ -4,6 +4,8 @@ Open **[index.html](index.html)** directly in your browser. No application, serv
 
 For implementation details, start with [Code structure and reading guide](reference/code-structure.md), then [Architecture](reference/architecture.md), [Protocol](reference/protocol.md) and [Local runbook](reference/running.md). The source guide distinguishes transport DTOs, immutable business/protocol models and the explicit JDBC schemas.
 
+[Incident notifications](reference/notifications.md) explains the protected email outbox, retries and local Mailpit inbox. Capture is not external Gmail delivery. The [September 8 notification integration](evidence/notification-verification-2026-09-08.json) passed four local cases; it is not a new throughput result. The [latest throughput report, September 7](evidence/local-verification-2026-09-07.json), remains **FAILED** at 19.9636 steady completed TPS against the strict 20 TPS threshold, despite all 2,400 operations completing correctly. The [September 6 pass](evidence/local-verification-2026-09-06-final.json) remains historical evidence.
+
 | Folder | Contents |
 |---|---|
 | `article` | Article source, HTML and PDF |

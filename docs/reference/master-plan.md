@@ -2,9 +2,26 @@
 
 > September 6 topology update: [Main + Audit/Protected with embedded ActiveMQ](architecture.md) supersedes physical three-database and direct outbox-to-inbox descriptions below. Requirement IDs and historical evidence remain preserved. September 5 metrics describe the earlier topology only.
 
-Status: original plan preserved; full local verification PASS (120 seconds, 20 TPS, zero tolerance); remaining checks are in implementation-status.md  
+Status: original plan preserved; latest aggregate throughput gate FAILED; current evidence and remaining checks are in implementation-status.md
 Recorded on: 2026-09-05  
 Purpose: a single source of context, decisions, requirements, and acceptance criteria
+
+## September 8 scope and evidence update
+
+The current topology is Main + Audit/Protected with embedded ActiveMQ, not three physical databases. Incident email is now implemented as an optional reporting side channel: protected `INTEGRITY_INCIDENT` and first per-operation `notification_outbox` entry commit atomically; a dedicated SMTP dispatcher uses claims, retries and a rate cap. Normal local startup captures messages in loopback Mailpit. Real authenticated TLS SMTP requires private configuration and is not externally verified by the local run. See [notification requirements and limits](notifications.md).
+
+Notification acceptance is separate from throughput acceptance:
+
+- [x] Atomic incident/outbox creation and one initial notification per operation; rollback, concurrency, privacy, retry and lease tests.
+- [x] Local SMTP capture: valid/no-alert, forgery/no financial effect, repeated identity and post-settlement tampering cases; [September 8 evidence](../evidence/notification-verification-2026-09-08.json).
+- [x] Sender/recipient configuration is trusted and private; messages contain safe references/reasons, not financial payloads or keys; status access is operator-only.
+- [x] Email remains outside the settlement path. SMTP acceptance is not confirmed inbox delivery; crash duplicates and delivery backlogs are explicit limits.
+- [ ] Real-provider SMTP/TLS handshake, external mailbox delivery, bounce/escalation integration and production incident operations.
+- [ ] Fresh strict 20 TPS acceptance for the notification revision. The [latest September 7 run](../evidence/local-verification-2026-09-07.json) was **FAILED** at 19.9636 TPS despite 2,400 correct unique completions and zero transaction failures. The [September 6 pass](../evidence/local-verification-2026-09-06-final.json) is historical and remains unchanged.
+
+The September 8 implementation passed 137 Java tests in 19 suites, 44 Node checks and 18 PostgreSQL role checks before the documentation publication update; none is a new throughput measurement. No automatic historic-alert backfill, end-user identity provider, arbitrary recipient routing or automatic account freeze was added. Notification failures must not grant execution authority.
+
+The sections below retain earlier decisions and baseline observations with their requirement IDs. Their descriptions of a "current prototype" or completed historical run must be read with the original date, not as current status.
 
 Implementation update, 2026-09-05: the complete local `verify-local` run passed, including the final restart without test hooks. Standard Maven `clean verify` passed 75 tests; Node load-evidence passed 20 tests; scenarios on three PostgreSQL instances and three JVMs passed 15/15. The accepted 120-second load run completed all 2,400 operations without errors: 20.009 TPS in the steady window after 10 seconds of warmup with zero tolerance, and 19.918 TPS over the whole run including drain. This is neither a 10-minute soak nor production certification. Raw reports, the history of an earlier restart failure, and outstanding checks are in [implementation-status.md](implementation-status.md). The original H2 prototype inventory and design decisions are preserved below: references to the “current prototype/not implemented” in historical sections describe the pre-rewrite baseline, not the new code. The new [architecture](architecture-decisions.md) and [README](../../README.md) describe three services / PostgreSQL. Historical acceptance criteria are not automatically checked off: existing code, an individual passing test, and complete aggregate acceptance are different levels of evidence.
 

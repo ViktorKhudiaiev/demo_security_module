@@ -46,7 +46,8 @@ public class ServiceAuthorization extends OncePerRequestFilter {
         String raw = request.getHeader("Authorization");
         byte[] supplied = (raw == null ? "" : raw).getBytes(StandardCharsets.UTF_8);
         boolean isAdmin = MessageDigest.isEqual(supplied, admin);
-        boolean adminOnly = path.endsWith("/hold") || path.startsWith("/internal/test/");
+        boolean adminOnly = path.endsWith("/hold") || path.startsWith("/internal/test/")
+                || path.startsWith("/internal/notifications/");
         if (!isAdmin && (adminOnly || !MessageDigest.isEqual(supplied, app))) {
             response.setStatus(401);
             response.setContentType("application/json");

@@ -64,7 +64,7 @@ class ProcessorServiceIntegrationTest {
             primaryDb.execute("CREATE TABLE transaction_outbox(id UUID PRIMARY KEY,transaction_id UUID,event_type VARCHAR,created_at_micros BIGINT,processed_at_micros BIGINT)");
             primaryDb.execute("CREATE TABLE transaction_status_events(id UUID PRIMARY KEY,transaction_id UUID,status VARCHAR,reason VARCHAR,created_at_micros BIGINT)");
             new ResourceDatabasePopulator(new ClassPathResource("settlement-schema.sql")).execute(settlementDb.getDataSource());
-            new ResourceDatabasePopulator(new ClassPathResource("audit-schema.sql")).execute(auditDb.getDataSource());
+            new ResourceDatabasePopulator(new ClassPathResource("audit-schema.sql"), new ClassPathResource("notification-schema.sql")).execute(auditDb.getDataSource());
         }
         when(keys.latest()).thenReturn(Optional.empty());
         when(keys.sign(any())).thenAnswer(call->{Checkpoint c=call.getArgument(0);return new SignedCheckpoint(c.logId(),c.treeSize(),c.rootHash(),c.createdAtMicros(),"test-key","test-signature","test-public");});

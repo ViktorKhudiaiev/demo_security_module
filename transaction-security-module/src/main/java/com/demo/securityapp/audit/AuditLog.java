@@ -40,8 +40,30 @@ public class AuditLog {
             long now = Processor.now();
             String leaf = hex(MerkleTree.leaf(eventBytes(next,eventId,operationId,type,detail,now)));
             db.update("INSERT INTO audit_events(seq,event_id,operation_id,event_type,detail,created_at_micros,leaf_hash) VALUES(?,?,?,?,?,?,?)",next,eventId,operationId,type,detail,now,leaf);
+            // Commit the first incident notification together with its evidence. Reconciliation
+            // can report several categories for one operation; it must not create an email storm.
+            // The audit-head lock serializes this check across appenders. No SMTP occurs here.
+            if ("INTEGRITY_INCIDENT".equals(type) && operationId != null
+                    && db.queryForList("SELECT operation_id FROM notification_outbox WHERE operation_id=?", operationId).isEmpty()) {
+                db.update("INSERT INTO notification_outbox(operation_id,event_id,event_seq,reason,created_at_micros) VALUES(?,?,?,?,?)",
+                        operationId, eventId, next, notificationReason(detail), now);
+            }
             db.update("UPDATE audit_head SET next_seq=? WHERE id=1",next+1);
         });
+    }
+    private static String notificationReason(String detail) {
+        // Never email an arbitrary audit detail or exception message. Full evidence stays
+        // protected; only reviewed, constant descriptions may cross the email boundary.
+        return switch (detail) {
+            case "No independent issuance receipt", "Issued primary record is missing",
+                    "Primary record differs from independent issuance receipt",
+                    "Primary record differs from issuance receipt", "Integrity verification failed",
+                    "Wrong ledger domain", "Record changed after verification (TOCTOU)",
+                    "Primary deleted after verification", "Invalid operation payload size",
+                    "Primary identity or timestamp mismatch", "Canonical content hash mismatch",
+                    "Malformed canonical operation" -> detail;
+            default -> "Integrity discrepancy detected; inspect protected audit evidence.";
+        };
     }
     public boolean healthy() { return healthy; }
     public String lastError() { return lastError; }

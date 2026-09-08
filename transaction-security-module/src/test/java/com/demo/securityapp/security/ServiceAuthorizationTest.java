@@ -28,4 +28,18 @@ class ServiceAuthorizationTest {
         MockHttpServletRequest request=new MockHttpServletRequest("GET","/health");MockFilterChain chain=new MockFilterChain();filter.doFilter(request,new MockHttpServletResponse(),chain);assertThat(chain.getRequest()).isSameAs(request);
     }
     @Test void equalCredentialsAreRefusedAtStartup(){assertThatThrownBy(()->new ServiceAuthorization(new MockEnvironment().withProperty("processor.app-token",app).withProperty("processor.admin-token",app))).isInstanceOf(IllegalArgumentException.class);}
+    @Test void notificationStatusRequiresOperatorCredential() throws Exception {
+        for (String token : new String[]{"", app, admin}) {
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", "/internal/notifications/status");
+            if (!token.isEmpty()) request.addHeader("Authorization", "Bearer " + token);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            MockFilterChain chain = new MockFilterChain();
+            filter.doFilter(request, response, chain);
+            if (token.equals(admin)) assertThat(chain.getRequest()).isSameAs(request);
+            else {
+                assertThat(response.getStatus()).isEqualTo(401);
+                assertThat(chain.getRequest()).isNull();
+            }
+        }
+    }
 }

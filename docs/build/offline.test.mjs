@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import vm from 'node:vm';
+import {validateEvidenceReport} from './build-demo.mjs';
 
 const entry=new URL('../index.html',import.meta.url);
 const html=await fs.readFile(entry,'utf8');
@@ -46,7 +47,32 @@ test('offline tabs, all twelve flow steps, glossary and evidence work without ne
  assert.equal(get('flow-step').value,'11');assert.equal(get('flow-next').disabled,true);
  get('flow-step').onchange({target:{value:'0'}});assert.equal(get('flow-back').disabled,true);
  assert.ok(get('glossary').children.length>10);assert.equal(get('scenario-evidence').children.length,15);
- assert.equal(JSON.parse(get('raw-evidence').textContent).verification.passed,true);
+ assert.equal(JSON.parse(get('raw-evidence').textContent).verification.passed,false);
+});
+
+test('evidence publication accepts explicit failed reports but rejects an unknown outcome',()=>{
+ const failed={passed:false};assert.equal(validateEvidenceReport(failed,'failed-run'),failed);
+ assert.equal(validateEvidenceReport({passed:true},'passing-run').passed,true);
+ assert.throws(()=>validateEvidenceReport({},'missing-result'),/boolean passed/);
+ assert.throws(()=>validateEvidenceReport({passed:'false'},'string-result'),/boolean passed/);
+});
+
+test('offline evidence separates latest failed load, historical pass and local email functionality',()=>{
+ const document=documentStub(html),context=vm.createContext({document});
+ for(const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(script[1],context);
+ const get=id=>document.getElementById(id),data=JSON.parse(get('raw-evidence').textContent);
+ assert.equal(data.verification.passed,false);assert.equal(data.verification.load.passed,false);
+ assert.equal(data.verification.load.criteria.steadyThroughput,false);
+ assert.equal(data.verification.load.completed,2400);assert.equal(data.verification.load.failures,0);
+ assert.match(get('latest-load-status').textContent,/FAILED.*FAILED.*19\.9636 TPS.*20\.0000 TPS/);
+ assert.match(get('historical-load-evidence').textContent,/PASSED.*Historical evidence, not acceptance of the notification revision/);
+ assert.equal(data.historicalVerification.passed,true);assert.equal(data.notifications.passed,true);
+ assert.match(get('notification-evidence').textContent,/Local Mailpit capture only; no external email delivery/);
+ assert.equal(get('notification-checks').children.length,4);
+ for(const check of get('notification-checks').children)assert.match(check.children[1].textContent,/^PASS:/);
+ assert.match(html,/notification_outbox.*email dispatcher.*Mailpit/s);
+ assert.match(html,/SMTP is not a settlement gate/);
+ assert.match(html,/No external Gmail delivery/);
 });
 
 test('live lab opened from disk stays offline and cannot silently execute experiments',async()=>{

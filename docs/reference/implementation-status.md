@@ -1,10 +1,27 @@
 # Implementation and Verifiable Results
 
+## Current status as of September 8, 2026
+
+The running design uses three Java services, **two PostgreSQL databases** (Main and Audit/Protected), embedded persistent ActiveMQ and an optional incident-email side channel. Audit/Protected retains authoritative balances and execution identity as well as independent evidence. The new `notification_outbox` commits the first alert for an operation with its integrity incident. A dedicated dispatcher retries minimal SMTP messages; mail availability does not authorize or gate a financial operation. Local Mailpit is a capture inbox, not Gmail delivery. See [architecture](architecture.md), [code structure](code-structure.md) and [notification guarantees](notifications.md).
+
+| Evidence scope | Result and limitation |
+|---|---|
+| Latest throughput run, September 7 | **FAILED** combined/load acceptance: 19.9636 steady completed TPS below the strict 20 TPS threshold; all 2,400 transfers completed uniquely, zero transaction failures, correct accounting/audit and normal restoration. 92 Java tests and 15 PostgreSQL scenarios passed. [Sanitized report](../evidence/local-verification-2026-09-07.json). |
+| Historical September 6 final run | **PASSED** at 20.0000 steady TPS, 86 Java tests and 15 scenarios. This is an earlier revision, not a replacement for the failed latest gate. [Historical report](../evidence/local-verification-2026-09-06-final.json). |
+| September 8 notification implementation, before publication updates | 137 Java tests in 19 suites, 44 Node checks and 18 PostgreSQL role checks passed. [Detailed scope](notifications.md#verification-on-september-8-2026). |
+| PostgreSQL-to-Mailpit notification run | Four cases passed: valid/no alert, forged/quarantined, repeated identity and post-settlement source tampering. No external delivery or new load benchmark. [Report](../evidence/notification-verification-2026-09-08.json). |
+
+The latest throughput failure remains open; a successful functional notification test does not complete it. No production SLA, independently administered KMS/HSM, real payment rails, real-provider SMTP handshake, host power-loss resilience or third-party certification is established. Notification delivery is at least once; a crash after SMTP acceptance can produce a duplicate. Incident observation is not proof of fraud or automatic grounds to freeze a recipient.
+
+## Historical September 5 implementation snapshot
+
+The remaining sections preserve the original dated implementation/recovery record. References there to three databases, 75 tests or completed acceptance describe September 5 only; they are not current topology or current aggregate acceptance.
+
 > September 6 topology update: [Main + Audit/Protected with embedded ActiveMQ](architecture.md) supersedes physical three-database and direct outbox-to-inbox descriptions below. Requirement IDs and historical evidence remain preserved. September 5 metrics describe the earlier topology only.
 
 Date: 2026-09-05. This file updates the status from the original master plan without removing historical context.
 
-## Current Conclusion
+## Historical September 5 Conclusion
 
 **Core local acceptance has passed.** Standard `Maven clean verify`, three PostgreSQL instances, three JVMs, 15 functional/adversarial scenarios, 20 TPS load for 120 seconds, and return to normal mode produced a successful combined report. This verifies a local software-key demo; it is not production certification.
 
