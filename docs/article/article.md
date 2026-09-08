@@ -2,7 +2,9 @@
 
 ## Authenticated execution and independently retained evidence for a PostgreSQL transaction workflow
 
-Viktor Khudiaiev · September 2026
+Viktor Khudiaiev · Updated September 8, 2026
+
+Implementation reviewed: [source snapshot `e2e35de`](https://github.com/ViktorKhudiaiev/demo_security_module/tree/e2e35de02abefdcee92f99be58381e53dfb62201). This identifies the implementation snapshot, not the commit of this publication. Measurements below retain their original run dates and revisions.
 
 The word blockchain often enters a conversation about tamper-evident records before anyone has defined the attacker. I prefer to begin with a less fashionable question: who can change the database, and what would the application do with those changes?
 
@@ -29,7 +31,7 @@ The current demo uses two PostgreSQL instances. Primary remains attacker-control
 | Store | Contains | Authority in this model |
 |---|---|---|
 | Primary | Operation records, delivery hints, status projections | Assumed fully writable by the attacker |
-| Audit/Protected: evidence tables | Independent issuance receipts and ordered audit evidence | Trusted evidence outside primary administration |
+| Audit/Protected: evidence and notification tables | Independent issuance receipts, ordered audit evidence and durable incident-notification outbox | Trusted evidence and alert-delivery state outside primary administration |
 | Audit/Protected: accounting tables | Balances, account holds, paired postings, execution journal, durable jobs and outcome outboxes | Trusted authority for financial effects in the same protected database |
 
 The application requests authentication from the key service and publishes the resulting operation to primary. The processor verifies candidates and performs settlement. Separate service credentials restrict issuance, verification, key administration, and checkpoint signing. The application receives no key bytes or settlement SQL access; the processor cannot issue new operation MACs.
@@ -62,7 +64,7 @@ This order matters. A record and its MAC stored only in primary can disappear to
 
 Retries are bound by a unique ledger and idempotency-key pair. The business fingerprint includes the domain, schema, ledger, operation type, accounts, amount, currency, related operation, and idempotency key. Server-generated operation UUIDs and creation times are not part of that business comparison. An identical retry returns the original authenticated operation. Reusing the retry key for different business content is rejected.
 
-The processor also scans the independent issuance inventory. It can therefore discover a missing issued operation even if it never observed a primary outbox hint. The current implementation uses periodic reconciliation and a five-second publication grace window; detection is not instantaneous.
+The processor also scans the independent issuance inventory. It can therefore discover a missing issued operation even if it never observed a primary outbox hint. The implementation applies a five-second operation-age threshold measured from the authenticated `createdAtMicros`, which is assigned before the issuance request. This is not a guaranteed five seconds after receipt commit or a detection-time guarantee. Periodic reconciliation and retained-history size also affect when a missing operation is observed.
 
 An issued-but-missing record is a discrepancy, not proof of malicious deletion. A crash before publication can produce the same symptom. Nor are gaps in the inventory sequence cryptographic evidence: the sequence is a traversal cursor. PostgreSQL sequence allocation can legitimately leave gaps after failed transactions. [PostgreSQL sequence documentation](https://www.postgresql.org/docs/current/functions-sequence.html)
 
@@ -98,6 +100,18 @@ This is a compensating workflow, not an atomic undo of history. Reversal can fai
 
 Unavailable verification dependencies do not become permission to skip checks. Work remains retryable; confirmed invalid content is quarantined. A dependency outage and a proven mismatch are different outcomes. Quarantine stops the suspicious operation. It does not automatically freeze the named recipient: an attacker could deliberately name an innocent account to cause denial of service. Protected account holds are controlled separately.
 
+## Report incidents without making email an execution gate
+
+Detection must also reach an operator. When the processor appends an `INTEGRITY_INCIDENT`, the same Audit/Protected SQL transaction inserts the first notification for that operation into `notification_outbox`. The event and its initial alert are therefore committed together outside Primary administration. Repeated observations can add audit evidence without creating another initial notification for that operation. Ordinary completion or a business rejection does not generate an integrity alert.
+
+A separately scheduled dispatcher claims pending notifications with expiring, fenced leases, sends email outside any database transaction, and records SMTP acceptance or schedules a retry. It has finite SMTP timeouts, exponential retry delay and a per-dispatcher attempt-rate cap. Email is an asynchronous reporting path, not permission to settle: a mail-service outage leaves a backlog but cannot make invalid content executable. A failure to commit protected incident evidence is a different storage failure; Audit/Protected remains required.
+
+Messages contain only an event ID, operation ID, audit sequence, recorded time and a fixed allow-listed reason or generic review instruction. Financial payloads, account identifiers, amounts, MACs and keys stay out of email. Recipients are BCCed and come only from trusted configuration, not the Primary record. An internal operation ID is still information that belongs in an approved mailbox, not a public issue tracker.
+
+Delivery attempts are at least once. If SMTP accepts a message and the processor stops before recording that result, a retry can duplicate it; a stable event reference supports correlation. The stored delivered marker means SMTP acceptance, not arrival in an inbox or acknowledgement by a person. Deduplication is per operation, so a later distinct discrepancy on that operation may add evidence without another initial email. Historic incidents are not automatically backfilled.
+
+The local demonstration uses a loopback-only Mailpit capture inbox with no forwarding or relay. Even an alert addressed to a public email address remains local; the tests did not deliver to Gmail or another external mailbox. Real SMTP requires separately supplied credentials, authenticated TLS and approved sender/recipient configuration. An alert discovered after settlement does not reverse or invalidate the earlier correctly authenticated effect, and a missing row is not proof of fraud. See the [notification design and operational limits](../reference/notifications.md).
+
 ## A second layer for audit history
 
 HMAC protects individual operation content internally. Ordered audit events—including settlement outcomes and account-control evidence—use a separate history mechanism: a Merkle tree and Ed25519-signed checkpoints. These events are not each represented as another operation HMAC, and not every internal job transition becomes an immutable audit event.
@@ -120,13 +134,23 @@ The local key service uses operating-system-protected software key files. HMAC r
 
 Ed25519 provides asymmetric checkpoint signatures: verification uses a public key rather than the signing secret. This makes checkpoint verification possible outside the writer, given trusted key distribution. It does not independently establish truthful business events, human authorship, legal non-repudiation, or trusted time. No external timestamp authority is implemented.
 
-## Measured two-database / embedded-queue workload
+## Measured workload: the latest strict throughput check failed
 
-The September 6, 2026 run used Main and Audit/Protected PostgreSQL, three Java services, and persistent embedded ActiveMQ on the same Windows host. It offered 20 transfers per second for 120 seconds: all 2,400 unique operations completed, no failures, matching protected balances and durable audit outcomes. The steady completion rate was **20.3091 TPS** over seconds 10–120; whole-run throughput including drain was **19.9371 TPS**. Final drain took 378 ms. End-to-end p95 was **3,990 ms**, and p99 was 4,599 ms. The finite completion window can include work submitted during warmup, so the steady rate slightly above 20 does not imply more than 20 offered TPS.
+The latest full load run is September 7, 2026, `2026-09-07T01-27-24-67e1f9c6`, before the notification revision. It used Main and Audit/Protected PostgreSQL, three Java services and persistent embedded ActiveMQ on the same Windows host. At 20 offered transfers per second for 120 seconds, all 2,400 distinct operations completed with zero transaction failures; protected accounting and audit checks passed. All 92 Java tests and 15 PostgreSQL scenarios passed, and normal mode was restored.
 
-The measured run passed 83 Java tests and 15 PostgreSQL scenarios. Separate processor/key-service outage checks and 13 Live Lab integration checks passed on the new topology. Final review then added three worker-admission failure/interruption/shutdown regressions; the subsequent Maven verification passed 86 tests. These extra tests are not retroactively counted in the recorded load run.
+Nevertheless, the strict steady-window completion criterion **failed**: **19.963636363636365 TPS** was below the required 20 TPS with zero configured tolerance. Whole-run completion including warmup and drain was 19.940251926438954 TPS; end-to-end p95 was 668.2416 ms and p99 was 791.458 ms. The load stage and combined report are failures, not rounded passes. This is a throughput acceptance failure, not an observed unauthorized or duplicate financial effect. See the [September 7 verification evidence](../evidence/local-verification-2026-09-07.json).
 
-The increased latency relative to the historical baseline is reported explicitly. The experiments used different retained history sizes and configurations; they are not a controlled A/B comparison and do not isolate the broker's cost. Embedded messaging is a durability/buffering design choice, not a demonstrated performance improvement. See [current verification](../evidence/local-verification-2026-09-06.json), [current recovery](../evidence/local-recovery-2026-09-06.json), and [current Live Lab checks](../evidence/live-lab-verification-2026-09-06.json).
+Earlier successful runs remain useful historical evidence, but do not replace that latest result. The [first September 6 run](../evidence/local-verification-2026-09-06.json), `2026-09-06T23-27-43-c027aafb`, passed 83 Java tests, 15 PostgreSQL scenarios and all 2,400 transfers. Steady completion was 20.3091 TPS, whole-run completion 19.9371 TPS, drain 378 ms, p95 3,990 ms and p99 4,599 ms. The [final September 6 run](../evidence/local-verification-2026-09-06-final.json), `2026-09-06T23-48-18-1b9a3dcc`, passed 86 Java tests, 15 scenarios and all 2,400 transfers at 20.0000 steady TPS and 19.9173 whole-run TPS; drain was 498 ms, p95 3,057 ms and p99 3,993 ms. These counts belong to their individual runs, not the current source revision.
+
+The finite steady completion window can include work submitted during warmup, so a rate slightly above 20 does not imply more than 20 offered TPS. Different retained-history sizes and configurations also make these runs unsuitable as a controlled A/B comparison. Embedded messaging is a durability/buffering choice, not a demonstrated performance improvement. Separate dated [September 6 recovery](../evidence/local-recovery-2026-09-06.json) and [Live Lab checks](../evidence/live-lab-verification-2026-09-06.json) retain their narrower scope.
+
+## Notification-revision verification
+
+On September 8, the notification revision passed 137 Java tests in 19 suites, with zero failures, errors or skips, plus 44 Node checks and 18 PostgreSQL role-isolation checks. The automatic coverage includes atomic incident/outbox rollback, repeated and concurrent incident deduplication, lease fencing, retry/restart behavior, safe message content, SMTP configuration and status-endpoint authorization. These are functional checks, not a new throughput benchmark.
+
+The [PostgreSQL-to-Mailpit integration run](../evidence/notification-verification-2026-09-08.json), `2026-09-08T15-49-53.807Z-28014d6c`, passed four isolated fixture cases: a valid transfer generated no incident alert; a fabricated Primary row was quarantined without a financial effect and generated one captured email; a repeated observation retained the same notification and one captured message during a five-second observation; and changing a completed operation's Primary MAC produced an alert while its original protected result, balances and postings remained unchanged.
+
+The duplicate-observation case does not remove the SMTP acceptance/crash window. This run established local capture only: it did not test external inbox delivery, a real provider's TLS handshake, a mail-service outage or host power loss. No new load benchmark was run for the notification revision. The latest recorded strict 20 TPS result therefore remains failed, and notification throughput and production availability remain unestablished.
 
 ## Historical baseline and its limits
 
@@ -154,8 +178,8 @@ Blockchain is not the only comparison. Database-native ledger features also addr
 
 Verifiable logs address historical commitments; traditional audit logs, access controls, and backups address other parts of the problem. This implementation focuses on connecting independently authenticated content to protected execution on a concrete PostgreSQL path. It is not a transparent adapter already validated for arbitrary databases or MySQL. No comparative benchmark establishes that it is cheaper or faster than a ledger database or distributed system.
 
-Before production deployment, software custody must be replaced or strengthened with a reviewed key-management-service or hardware-security-module integration, independent service identities and deployment ownership, encrypted authenticated transport, protected key distribution, and independently retained checkpoints. Recovery needs backups, point-in-time recovery exercises, retention controls, and operational playbooks. Scalable history verification, broader failure testing, dependency modernization, vulnerability review, and external security assessment remain necessary.
+Before production deployment, software custody must be replaced or strengthened with a reviewed key-management-service or hardware-security-module integration, independent service identities and deployment ownership, encrypted authenticated transport, protected key distribution, and independently retained checkpoints. Recovery needs backups, point-in-time recovery exercises, retention controls, and operational playbooks. Notification delivery additionally needs an approved provider and sender identity, protected routing, backlog/age and bounce monitoring, escalation policies and handling of distinct-operation floods. Scalable history verification, broader failure testing, dependency modernization, vulnerability review, and external security assessment remain necessary.
 
 The useful result is not “a database that cannot be changed.” It is a more precise separation: primary data may be changed, but those changes do not automatically become executable instructions, and independent evidence makes discrepancies inspectable. Established cryptography supplies the building blocks. The engineering task is to preserve their meaning through publication, execution, retries, correction, and audit.
 
-Current topology, implementation acceptance and fresh evidence are tracked in the [September 6 update](../reference/architecture.md). The historical measurements above remain unchanged and must not be relabeled as measurements of the new broker path.
+Current topology, dated acceptance results and deployment limits are tracked in the [architecture reference](../reference/architecture.md). Historical measurements remain unchanged and must not be relabeled as benchmarks of a later revision. Neither these tests nor this architecture assert regulatory compliance or legal non-repudiation.

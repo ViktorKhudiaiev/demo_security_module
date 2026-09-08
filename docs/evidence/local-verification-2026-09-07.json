@@ -1,0 +1,201 @@
+{
+  "scope": "Two PostgreSQL databases; embedded persistent ActiveMQ; software keys; one trusted Windows host; simulated funds.",
+  "provenance": {
+    "runId": "2026-09-07T01-27-24-67e1f9c6",
+    "rawCombinedSha256": "2632b21594e9aeb155259196147e5d35c66ebf7ed7598489e4b077e66e46d55d",
+    "rawLoadSha256": "f0456e22e955dc4cad9854290b904f3e1b766aedd77f1e49d4913459fcf42cd1",
+    "rawScenariosSha256": "ce6a0a435e9c244804070bb1b7ca9a08cae0cb83979b41a77b40800b8268618b"
+  },
+  "startedAt": "2026-09-07T01:27:24.9119245Z",
+  "endedAt": "2026-09-07T01:32:51.2389731Z",
+  "passed": false,
+  "build": "PASSED",
+  "harnessTests": "PASSED",
+  "normalRestart": "PASSED",
+  "javaTests": {
+    "suites": 14,
+    "tests": 92,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "scenarios": [
+    {
+      "name": "prerequisites-and-scoped-primary-database",
+      "passed": true,
+      "durationMs": 1119.1582
+    },
+    {
+      "name": "missing-app-credential-is-401",
+      "passed": true,
+      "durationMs": 9.113100000000031
+    },
+    {
+      "name": "service-credentials-have-separate-authority",
+      "passed": true,
+      "durationMs": 52.20320000000015
+    },
+    {
+      "name": "zero-balance-registration-and-protected-funding",
+      "passed": true,
+      "durationMs": 1456.0301
+    },
+    {
+      "name": "transfer-and-idempotent-retry-have-one-financial-effect",
+      "passed": true,
+      "durationMs": 381.90999999999985
+    },
+    {
+      "name": "same-idempotency-key-different-amount-is-409",
+      "passed": true,
+      "durationMs": 28.049599999999828
+    },
+    {
+      "name": "twenty-concurrent-retries-return-one-operation",
+      "passed": true,
+      "durationMs": 460.0435000000002
+    },
+    {
+      "name": "primary-runtime-role-cannot-edit-operation-content",
+      "passed": true,
+      "durationMs": 527.2176
+    },
+    {
+      "name": "forged-primary-row-with-fake-mac-is-quarantined",
+      "passed": true,
+      "durationMs": 825.3955999999994
+    },
+    {
+      "name": "issued-record-missing-before-publication-is-detected",
+      "passed": true,
+      "durationMs": 40262.6157
+    },
+    {
+      "name": "tamper-after-verification-before-use-is-quarantined",
+      "passed": true,
+      "durationMs": 5902.064299999998
+    },
+    {
+      "name": "delete-after-verification-is-quarantined",
+      "passed": true,
+      "durationMs": 5883.518400000001
+    },
+    {
+      "name": "failure-after-debit-rolls-back-and-retry-settles-once",
+      "passed": true,
+      "durationMs": 3896.8470000000016
+    },
+    {
+      "name": "replayed-primary-outbox-does-not-repeat-settlement",
+      "passed": true,
+      "durationMs": 1488.4825000000055
+    },
+    {
+      "name": "completed-source-tampering-raises-incident-without-another-debit",
+      "passed": true,
+      "durationMs": 36327.5786
+    }
+  ],
+  "load": {
+    "runId": "2026-09-07T01-30-18-530Z-c26b4c13",
+    "startedAt": "2026-09-07T01:30:21.612Z",
+    "endedAt": "2026-09-07T01:32:22.047Z",
+    "nodeVersion": "v24.19.0",
+    "platform": "win32",
+    "host": {
+      "cpuModel": "13th Gen Intel(R) Core(TM) i7-13620H",
+      "logicalCpus": 16,
+      "totalMemoryBytes": 16858472448,
+      "osRelease": "10.0.26200"
+    },
+    "configuration": {
+      "targetTps": 20,
+      "seconds": 120,
+      "warmupSeconds": 10,
+      "drainSeconds": 30,
+      "accountCount": 8,
+      "completionTolerance": 0,
+      "acceptedTpsFloor": 20
+    },
+    "expectedCount": 2400,
+    "submitted": 2400,
+    "completed": 2400,
+    "uniqueOperationCount": 2400,
+    "failures": 0,
+    "offeredTps": 20,
+    "steadyCompletedTps": 19.963636363636365,
+    "totalCompletedTpsIncludingDrain": 19.940251926438954,
+    "drainTimeMs": 359.56260000000475,
+    "backlogGrowth": -0.3699999999999992,
+    "latencyMs": {
+      "p50": 438.704899999997,
+      "p95": 668.2415999999994,
+      "p99": 791.4579999999987,
+      "max": 1214.435000000005
+    },
+    "criteria": {
+      "allScheduledSubmitted": true,
+      "uniqueOperationIds": true,
+      "allCompletedWithAudit": true,
+      "balancesMatchProtectedLedger": true,
+      "steadyThroughput": false,
+      "boundedBacklog": true
+    },
+    "passed": false,
+    "balances": [
+      {
+        "id": "6df08496-c22b-43e8-99c1-48af0bcb2fc7",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "0f5abb28-f69c-447d-b132-38b49016c9e4",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "4f102599-4e3f-4761-9bfd-a028e01df7bd",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "b9c1bdab-6125-4717-b3af-c022490f54c6",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "399d145f-5236-4db3-a204-8f6355ea7320",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "341d9cbc-575b-43e7-ad15-e2d7a094005e",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "7032b26c-21cd-4769-b593-051a25169e4d",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      },
+      {
+        "id": "183707a1-7953-46d6-8e44-5a56a78bb4f9",
+        "expected": 1000000,
+        "actual": 1000000,
+        "matches": true
+      }
+    ],
+    "limitations": [
+      "Local software-key demo on one trusted host, not a production KMS/HSM benchmark.",
+      "Steady-state completion rate excludes the declared warmup and uses an explicit finite-window tolerance.",
+      "This test adds fresh accounts and simulated funding; it does not delete existing data."
+    ]
+  }
+}
