@@ -104,3 +104,21 @@ Local credentials and backup contents stay in ignored `.local`; they must never 
 The production diagram shows independent key custody (KMS/HSM), service IAM/deployment governance, authenticated encrypted transport, protected database administration, independently retained recent checkpoints and recovery storage. Backups/PITR, retention policy, external security review and failure testing are deployment requirements, not properties provided by HMAC or this local broker.
 
 Official references: [ActiveMQ Classic 6.3.2](https://activemq.apache.org/components/classic/download/classic-06-03-02), [VM transport](https://activemq.apache.org/components/classic/documentation/vm-transport-reference), [KahaDB](https://activemq.apache.org/components/classic/documentation/kahadb), [redelivery](https://activemq.apache.org/components/classic/documentation/redelivery-policy).
+
+## Incident notification addendum
+
+The notification extension retains the two-database design and the same protected execution authority. When the processor appends an `INTEGRITY_INCIDENT`, the same Audit/Protected SQL transaction inserts the first notification for that operation in `notification_outbox`. Reconciliation can produce additional audit evidence, but does not repeatedly enqueue the initial alert for the same operation.
+
+```text
+Integrity check -> Audit/Protected [audit_events + notification_outbox]
+                                    -> asynchronous email dispatcher
+                                    -> local Mailpit capture / configured SMTP
+```
+
+The dispatcher uses expiring claims, retries, finite SMTP timeouts and a send-rate cap. It sends minimal plain text only to configured recipients; transaction fields cannot redirect the notification. SMTP work is separate from verification/accounting, and SMTP outages neither authorize an invalid operation nor block financial execution. Protected database failures remain distinct from mail-service failures.
+
+Mailpit is a loopback-only demo inbox, not another database of financial truth and not an external delivery service. A message addressed to a public email address remains in the capture inbox unless an independently configured real mail service is used. Direct Java startup has notification delivery disabled by default; the local launcher explicitly selects capture mode.
+
+Delivery is at least once: SMTP acceptance followed by a crash before the delivered marker can produce a duplicate. This is not an inbox-delivery or human-response guarantee. Missing rows and source changes are suspected integrity discrepancies, not proof of fraud; incidents observed after execution do not undo or deny the earlier protected settlement. Historic incidents are not automatically backfilled into notifications.
+
+See [incident notification setup, flow and operational limits](notifications.md). Production needs approved SMTP/TLS and sender identity, protected routing configuration, backlog/age and bounce monitoring, escalation/retention policies, and handling of distinct-operation floods. The recorded benchmark and acceptance sections above describe earlier revisions; they are not performance evidence for this addition. The README retains the latest strict 20 TPS failure rather than relabeling it as a pass.

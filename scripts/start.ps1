@@ -1,6 +1,8 @@
 param([switch]$SkipBuild, [switch]$EnableTestFaults)
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'notification-settings.ps1')
 $secrets = Initialize-DemoSecrets
+$notificationEnvironment = Get-DemoNotificationEnvironment -LocalDirectory $script:DemoLocal
 if (-not $SkipBuild) {
     # Rebuilding live JARs fails on Windows. Preserve databases and stop only
     # this project's tracked JVMs before replacing their build artifacts.
@@ -22,7 +24,9 @@ foreach ($jar in @($keyJar, $processorJar, $appJar)) {
     if (-not (Test-Path -LiteralPath $jar)) { throw "JAR missing: $jar. Run scripts/test.ps1 first." }
 }
 
-Invoke-DemoCompose -Arguments @('up', '-d', '--wait', '--wait-timeout', '60')
+$composeArguments = @('up', '-d', '--wait', '--wait-timeout', '60')
+if ($notificationEnvironment.NOTIFICATION_MODE -eq 'mailpit') { $composeArguments = @('--profile', 'mail') + $composeArguments }
+Invoke-DemoCompose -Arguments $composeArguments
 & (Join-Path $PSScriptRoot 'assert-protected-migration.ps1')
 if (-not $?) { throw 'Protected database migration check failed.' }
 & (Join-Path $PSScriptRoot 'bootstrap-databases.ps1')
@@ -58,7 +62,7 @@ function Start-DemoJava {
         'SETTLEMENT_URL','SETTLEMENT_USER','SETTLEMENT_PASSWORD','KEY_SERVICE_URL','KEY_DIRECTORY',
         'KEY_WRITER_TOKEN','KEY_VERIFIER_TOKEN','KEY_ADMIN_TOKEN','KEY_SIGNER_TOKEN','PROCESSOR_URL',
         'PROCESSOR_APP_TOKEN','PROCESSOR_ADMIN_TOKEN','APP_API_TOKEN','KEY_SCHEMA_INIT','PROCESSOR_SCHEMA_INIT',
-        'PROCESSOR_TEST_FAULTS_ENABLED','BROKER_DIRECTORY','SERVER_ADDRESS','SERVER_PORT','KEY_PORT','KEY_BIND_ADDRESS') + @($secrets.PSObject.Properties.Name)
+        'PROCESSOR_TEST_FAULTS_ENABLED','BROKER_DIRECTORY','SERVER_ADDRESS','SERVER_PORT','KEY_PORT','KEY_BIND_ADDRESS') + @($secrets.PSObject.Properties.Name) + @(Get-DemoNotificationSettingNames)
     $managed = @($managed | Select-Object -Unique)
     $previous = @{}
     $logStamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfff') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 6)
@@ -86,7 +90,7 @@ Start-DemoJava key-service $keyJar 8081 @{
     KEY_DIRECTORY=(Join-Path $script:DemoLocal 'keys'); KEY_WRITER_TOKEN=$secrets.KEY_WRITER_TOKEN;
     KEY_VERIFIER_TOKEN=$secrets.KEY_VERIFIER_TOKEN; KEY_ADMIN_TOKEN=$secrets.KEY_ADMIN_TOKEN; KEY_SIGNER_TOKEN=$secrets.KEY_SIGNER_TOKEN
 }
-Start-DemoJava processor $processorJar 8082 @{
+$processorEnvironment = @{
     SERVER_ADDRESS='127.0.0.1'; SERVER_PORT='8082';
     PRIMARY_URL='jdbc:postgresql://127.0.0.1:55431/primary_db'; PRIMARY_USER='primary_processor'; PRIMARY_PASSWORD=$secrets.PRIMARY_PROCESSOR_PASSWORD;
     AUDIT_URL='jdbc:postgresql://127.0.0.1:55432/audit_db'; AUDIT_USER='audit_processor'; AUDIT_PASSWORD=$secrets.AUDIT_PROCESSOR_PASSWORD;
@@ -96,6 +100,8 @@ Start-DemoJava processor $processorJar 8082 @{
     PROCESSOR_APP_TOKEN=$secrets.PROCESSOR_APP_TOKEN; PROCESSOR_ADMIN_TOKEN=$secrets.PROCESSOR_ADMIN_TOKEN;
     PROCESSOR_TEST_FAULTS_ENABLED=([string][bool]$EnableTestFaults).ToLowerInvariant()
 }
+foreach ($name in $notificationEnvironment.Keys) { $processorEnvironment[$name] = $notificationEnvironment[$name] }
+Start-DemoJava processor $processorJar 8082 $processorEnvironment
 Start-DemoJava application $appJar 8080 @{
     SERVER_ADDRESS='127.0.0.1'; SERVER_PORT='8080';
     PRIMARY_URL='jdbc:postgresql://127.0.0.1:55431/primary_db'; PRIMARY_USER='primary_app'; PRIMARY_PASSWORD=$secrets.PRIMARY_APP_PASSWORD;
@@ -103,4 +109,11 @@ Start-DemoJava application $appJar 8080 @{
     PROCESSOR_URL='http://127.0.0.1:8082'; PROCESSOR_APP_TOKEN=$secrets.PROCESSOR_APP_TOKEN; APP_API_TOKEN=$secrets.APP_API_TOKEN
 }
 Write-Host 'Local demo ready. No real payments. Credentials: .local/secrets.json (never commit/share this file).'
+if ($notificationEnvironment.NOTIFICATION_MODE -eq 'mailpit') {
+    Write-Host 'Incident email: http://127.0.0.1:8025 (local capture only; no external delivery).'
+} elseif ($notificationEnvironment.NOTIFICATION_MODE -eq 'smtp') {
+    Write-Host 'Incident email: authenticated SMTP enabled for privately configured recipients.'
+} else {
+    Write-Host 'Incident email delivery is disabled; new incident notifications remain queued.'
+}
 if ($EnableTestFaults) { Write-Warning 'Test fault injection enabled. Stop and restart without -EnableTestFaults before presentations.' }

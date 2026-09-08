@@ -22,7 +22,7 @@ class AuditLogTest {
     KeyGateway keys;
     @BeforeEach void setup(){
         db=new JdbcTemplate(new DriverManagerDataSource("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=PostgreSQL;DB_CLOSE_DELAY=-1","sa",""));
-        new ResourceDatabasePopulator(new ClassPathResource("audit-schema.sql")).execute(db.getDataSource());
+        new ResourceDatabasePopulator(new ClassPathResource("audit-schema.sql"), new ClassPathResource("notification-schema.sql")).execute(db.getDataSource());
         keys=mock(KeyGateway.class);anchor=new AtomicReference<>();
         when(keys.latest()).thenAnswer(call->Optional.ofNullable(anchor.get()));
         when(keys.sign(any())).thenAnswer(call->{Checkpoint c=call.getArgument(0);SignedCheckpoint s=new SignedCheckpoint(c.logId(),c.treeSize(),c.rootHash(),c.createdAtMicros(),"signer-v1","test-signature","test-key");anchor.set(s);return s;});

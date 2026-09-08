@@ -14,6 +14,7 @@ GitHub displays HTML source rather than executing the page. Download the reposit
 - [PowerPoint](docs/presentation/demo.pptx) · [Presenter guide](docs/presentation/guide.html) · [Speaker notes](docs/presentation/notes.md)
 - [Code structure and reading guide](docs/reference/code-structure.md)
 - [Architecture and acceptance criteria](docs/reference/architecture.md) · [Exact protocol](docs/reference/protocol.md) · [Glossary](docs/reference/glossary.md)
+- [Integrity incident email notifications](docs/reference/notifications.md)
 
 ## What runs in the local demo
 
@@ -25,6 +26,7 @@ GitHub displays HTML source rather than executing the page. Download the reposit
 | Main/Primary PostgreSQL | Candidate operations, delivery hints and non-authoritative status projections | `127.0.0.1:55431` |
 | Audit/Protected PostgreSQL | Issuance receipts, audit history, jobs, authoritative balances and postings | `127.0.0.1:55432` |
 | Embedded ActiveMQ Classic | Persistent delivery buffer inside the processor JVM; VM transport only | No broker TCP endpoint |
+| Local Mailpit inbox | Capture incident-notification emails for inspection; no delivery to public mailboxes | SMTP `127.0.0.1:1025`, inbox `127.0.0.1:8025` |
 | Optional Live Lab helper | Loopback-only browser experiments using the real local stack | `127.0.0.1:8090` |
 
 There are **two physical databases**, not three. The logical accounting connection is still named `settlementDb` and uses its own SQL role in Audit/Protected. Java performs the business calculations; PostgreSQL provides atomic commits, locks, uniqueness and durable storage. Audit/Protected is not merely a passive log: its authoritative money state must stay outside the Main DBA's control for the stated guarantee to hold.
@@ -39,6 +41,8 @@ There are **two physical databases**, not three. The logical accounting connecti
 6. One protected SQL transaction commits Java-calculated debit/credit postings, balances, the unique execution result and a durable outcome. The relay subsequently appends audit history and projects status into Primary. Duplicate hints or retries do not cause a second financial effect.
 
 Periodic reconciliation also checks for missing issued records and fabricated source rows without delivery hints. Detection is not instantaneous. Audit events are committed to a Merkle tree with signed checkpoints; those checkpoints need independently trusted retention for protection against coordinated rollback of the trusted stores. See [architecture](docs/reference/architecture.md) for acknowledgement gaps, failure behavior and the production boundary.
+
+On an integrity incident, the processor atomically appends protected audit evidence and queues the first email notification for that operation. A separate dispatcher sends a minimal alert with retry and a rate cap; mail-server availability is not an execution gate. Normal local startup captures messages in [Mailpit's local inbox](http://127.0.0.1:8025), not in Gmail or another public mailbox. Real email needs separately configured authenticated SMTP. See [notification setup and limits](docs/reference/notifications.md), including possible duplicate delivery and the distinction between a suspected discrepancy and confirmed fraud. Existing measurements below predate this feature; no new throughput result is implied.
 
 ## Source layout
 

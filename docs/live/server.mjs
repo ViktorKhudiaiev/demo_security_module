@@ -27,11 +27,12 @@ const redirects=new Map([
 // Explicit public references from the presenter handbook; never serve a directory.
 for(const file of [
  'docs/evidence/local-verification-2026-09-06-final.json',
+ 'docs/evidence/notification-verification-2026-09-08.json',
  'docs/evidence/local-verification-2026-09-06.json','docs/evidence/local-recovery-2026-09-06.json','docs/evidence/live-lab-verification-2026-09-06.json','docs/evidence/protected-migration-2026-09-06.json',
  'docs/reference/architecture.md','docs/reference/architecture-decisions.md','docs/reference/implementation-status.md','docs/reference/glossary.md',
  'docs/evidence/local-verification-2026-09-05.json','docs/evidence/local-recovery-2026-09-05.json','docs/evidence/live-lab-verification-2026-09-05.json',
  'docs/reference/protocol.md','docs/reference/running.md','scripts/scenarios.mjs','scripts/load.mjs','scripts/recovery.mjs',
- 'docs/reference/code-structure.md','docs/reference/contributing.md',
+ 'docs/reference/code-structure.md','docs/reference/contributing.md','docs/reference/notifications.md',
  'account-transfer-app/src/main/java/com/demo/transferapp/service/TransferService.java',
  'tokenization-module/src/main/java/com/demo/integrity/crypto/CanonicalEncoder.java',
  'tokenization-module/src/main/java/com/demo/keyservice/service/IssuanceService.java','tokenization-module/src/main/java/com/demo/keyservice/vault/LocalKeyVault.java',

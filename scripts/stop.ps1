@@ -14,6 +14,6 @@ if (Test-Path -LiteralPath $statePath) {
     [IO.File]::WriteAllText($statePath, '[]')
 }
 if (-not $KeepDatabases -and (Test-Path -LiteralPath (Join-Path $script:DemoLocal 'compose.env'))) {
-    Invoke-DemoCompose -Arguments @('stop')
+    Invoke-DemoCompose -Arguments @('--profile', 'mail', 'stop')
 }
 Write-Host 'Demo stopped. Database volumes, keys, receipts and checkpoints were preserved.'
