@@ -1,4 +1,4 @@
-# Verifiable Record Integrity Without a Blockchain
+# If Someone Changes Your Database, Should Your System Still Execute the Payment?
 
 ## Authenticated execution and independently retained evidence for a PostgreSQL transaction workflow
 
@@ -30,11 +30,20 @@ The integrating application remains responsible for authenticating people and ap
 
 The current demo uses two PostgreSQL instances. Primary remains attacker-controlled. Audit/Protected combines evidence and authoritative execution state, with separate runtime roles for issuance, audit and accounting. Java computes the debit and credit; protected SQL commits them atomically. The relevant property is that the primary administrator cannot modify this protected state.
 
-| Store | Contains | Authority in this model |
-|---|---|---|
-| Primary | Operation records, delivery hints, status projections | Assumed fully writable by the attacker |
-| Audit/Protected: evidence and notification tables | Independent issuance receipts, ordered audit evidence and durable incident-notification outbox | Trusted evidence and alert-delivery state outside primary administration |
-| Audit/Protected: accounting tables | Balances, account holds, paired postings, execution journal, durable jobs and outcome outboxes | Trusted authority for financial effects in the same protected database |
+**Store: Primary**
+
+- **Contains:** Operation records, delivery hints, status projections
+- **Authority in this model:** Assumed fully writable by the attacker
+
+**Store: Audit/Protected: evidence and notification tables**
+
+- **Contains:** Independent issuance receipts, ordered audit evidence and durable incident-notification outbox
+- **Authority in this model:** Trusted evidence and alert-delivery state outside primary administration
+
+**Store: Audit/Protected: accounting tables**
+
+- **Contains:** Balances, account holds, paired postings, execution journal, durable jobs and outcome outboxes
+- **Authority in this model:** Trusted authority for financial effects in the same protected database
 
 The application requests authentication from the key service and publishes the resulting operation to primary. The processor verifies candidates and performs settlement. Separate service credentials restrict issuance, verification, key administration, and checkpoint signing. The application receives no key bytes or settlement SQL access; the processor cannot issue new operation MACs.
 
@@ -54,7 +63,7 @@ UUIDs occupy 16 bytes. Integers use fixed-width, signed, big-endian encoding. Mo
 
 Text is UTF-8, but this schema restricts identifiers to specified ASCII alphabets. It does not silently normalize arbitrary Unicode. Unsupported schema versions are rejected; future changes require explicit version support and preserved historical decoding rules. JSON Canonicalization Scheme is another established approach to deterministic serialization, but this protocol uses its documented binary encoding, not JCS. [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785.html)
 
-Both the content hash and HMAC are calculated over those exact bytes. The ordinary hash is useful for comparisons; it does not replace secret-key authentication. The accompanying [protocol specification](../reference/protocol.md) and golden test vectors make the encoding independently reproducible.
+Both the content hash and HMAC are calculated over those exact bytes. The ordinary hash is useful for comparisons; it does not replace secret-key authentication. The accompanying [protocol specification](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/reference/protocol.md) and golden test vectors make the encoding independently reproducible.
 
 A valid MAC protects the recorded timestamp against alteration. It does not establish the actual real-world event time, identify a human author, or prove that external funds arrived.
 
@@ -112,7 +121,7 @@ Messages contain only an event ID, operation ID, audit sequence, recorded time a
 
 Delivery attempts are at least once. If SMTP accepts a message and the processor stops before recording that result, a retry can duplicate it; a stable event reference supports correlation. The stored delivered marker means SMTP acceptance, not arrival in an inbox or acknowledgement by a person. Deduplication is per operation, so a later distinct discrepancy on that operation may add evidence without another initial email. Historic incidents are not automatically backfilled.
 
-The local demonstration uses a loopback-only Mailpit capture inbox with no forwarding or relay. Even an alert addressed to a public email address remains local; the tests did not deliver to Gmail or another external mailbox. Real SMTP requires separately supplied credentials, authenticated TLS and approved sender/recipient configuration. An alert discovered after settlement does not reverse or invalidate the earlier correctly authenticated effect, and a missing row is not proof of fraud. See the [notification design and operational limits](../reference/notifications.md).
+The local demonstration uses a loopback-only Mailpit capture inbox with no forwarding or relay. Even an alert addressed to a public email address remains local; the tests did not deliver to Gmail or another external mailbox. Real SMTP requires separately supplied credentials, authenticated TLS and approved sender/recipient configuration. An alert discovered after settlement does not reverse or invalidate the earlier correctly authenticated effect, and a missing row is not proof of fraud. See the [notification design and operational limits](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/reference/notifications.md).
 
 ## A second layer for audit history
 
@@ -140,17 +149,17 @@ Ed25519 provides asymmetric checkpoint signatures: verification uses a public ke
 
 The latest full load run is September 7, 2026, `2026-09-07T01-27-24-67e1f9c6`, before the notification revision. It used Main and Audit/Protected PostgreSQL, three Java services and persistent embedded ActiveMQ on the same Windows host. At 20 offered transfers per second for 120 seconds, all 2,400 distinct operations completed with zero transaction failures; protected accounting and audit checks passed. All 92 Java tests and 15 PostgreSQL scenarios passed, and normal mode was restored.
 
-Nevertheless, the strict steady-window completion criterion **failed**: **19.963636363636365 TPS** was below the required 20 TPS with zero configured tolerance. Whole-run completion including warmup and drain was 19.940251926438954 TPS; end-to-end p95 was 668.2416 ms and p99 was 791.458 ms. The load stage and combined report are failures, not rounded passes. This is a throughput acceptance failure, not an observed unauthorized or duplicate financial effect. See the [September 7 verification evidence](../evidence/local-verification-2026-09-07.json).
+Nevertheless, the strict steady-window completion criterion **failed**: **19.963636363636365 TPS** was below the required 20 TPS with zero configured tolerance. Whole-run completion including warmup and drain was 19.940251926438954 TPS; end-to-end p95 was 668.2416 ms and p99 was 791.458 ms. The load stage and combined report are failures, not rounded passes. This is a throughput acceptance failure, not an observed unauthorized or duplicate financial effect. See the [September 7 verification evidence](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-verification-2026-09-07.json).
 
-Earlier successful runs remain useful historical evidence, but do not replace that latest result. The [first September 6 run](../evidence/local-verification-2026-09-06.json), `2026-09-06T23-27-43-c027aafb`, passed 83 Java tests, 15 PostgreSQL scenarios and all 2,400 transfers. Steady completion was 20.3091 TPS, whole-run completion 19.9371 TPS, drain 378 ms, p95 3,990 ms and p99 4,599 ms. The [final September 6 run](../evidence/local-verification-2026-09-06-final.json), `2026-09-06T23-48-18-1b9a3dcc`, passed 86 Java tests, 15 scenarios and all 2,400 transfers at 20.0000 steady TPS and 19.9173 whole-run TPS; drain was 498 ms, p95 3,057 ms and p99 3,993 ms. These counts belong to their individual runs, not the current source revision.
+Earlier successful runs remain useful historical evidence, but do not replace that latest result. The [first September 6 run](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-verification-2026-09-06.json), `2026-09-06T23-27-43-c027aafb`, passed 83 Java tests, 15 PostgreSQL scenarios and all 2,400 transfers. Steady completion was 20.3091 TPS, whole-run completion 19.9371 TPS, drain 378 ms, p95 3,990 ms and p99 4,599 ms. The [final September 6 run](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-verification-2026-09-06-final.json), `2026-09-06T23-48-18-1b9a3dcc`, passed 86 Java tests, 15 scenarios and all 2,400 transfers at 20.0000 steady TPS and 19.9173 whole-run TPS; drain was 498 ms, p95 3,057 ms and p99 3,993 ms. These counts belong to their individual runs, not the current source revision.
 
-The finite steady completion window can include work submitted during warmup, so a rate slightly above 20 does not imply more than 20 offered TPS. Different retained-history sizes and configurations also make these runs unsuitable as a controlled A/B comparison. Embedded messaging is a durability/buffering choice, not a demonstrated performance improvement. Separate dated [September 6 recovery](../evidence/local-recovery-2026-09-06.json) and [Live Lab checks](../evidence/live-lab-verification-2026-09-06.json) retain their narrower scope.
+The finite steady completion window can include work submitted during warmup, so a rate slightly above 20 does not imply more than 20 offered TPS. Different retained-history sizes and configurations also make these runs unsuitable as a controlled A/B comparison. Embedded messaging is a durability/buffering choice, not a demonstrated performance improvement. Separate dated [September 6 recovery](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-recovery-2026-09-06.json) and [Live Lab checks](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/live-lab-verification-2026-09-06.json) retain their narrower scope.
 
 ## Notification-revision verification
 
 On September 8, the notification revision passed 137 Java tests in 19 suites, with zero failures, errors or skips, plus 44 Node checks and 18 PostgreSQL role-isolation checks. The automatic coverage includes atomic incident/outbox rollback, repeated and concurrent incident deduplication, lease fencing, retry/restart behavior, safe message content, SMTP configuration and status-endpoint authorization. These are functional checks, not a new throughput benchmark.
 
-The [PostgreSQL-to-Mailpit integration run](../evidence/notification-verification-2026-09-08.json), `2026-09-08T15-49-53.807Z-28014d6c`, passed four isolated fixture cases: a valid transfer generated no incident alert; a fabricated Primary row was quarantined without a financial effect and generated one captured email; a repeated observation retained the same notification and one captured message during a five-second observation; and changing a completed operation's Primary MAC produced an alert while its original protected result, balances and postings remained unchanged.
+The [PostgreSQL-to-Mailpit integration run](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/notification-verification-2026-09-08.json), `2026-09-08T15-49-53.807Z-28014d6c`, passed four isolated fixture cases: a valid transfer generated no incident alert; a fabricated Primary row was quarantined without a financial effect and generated one captured email; a repeated observation retained the same notification and one captured message during a five-second observation; and changing a completed operation's Primary MAC produced an alert while its original protected result, balances and postings remained unchanged.
 
 The duplicate-observation case does not remove the SMTP acceptance/crash window. This run established local capture only: it did not test external inbox delivery, a real provider's TLS handshake, a mail-service outage or host power loss. No new load benchmark was run for the notification revision. The latest recorded strict 20 TPS result therefore remains failed, and notification throughput and production availability remain unestablished.
 
@@ -158,21 +167,39 @@ The duplicate-observation case does not remove the SMTP acceptance/crash window.
 
 The historical September 5 acceptance run, before the two-database/ActiveMQ revision, used three Java services and three PostgreSQL instances on one Windows/Docker host, with software keys and simulated money. The machine had an Intel Core i7-13620H, 16 logical processors, and approximately 16 GB RAM.
 
-| Measurement | Recorded result |
-|---|---|
-| Automated Java verification | 75 tests in 10 suites; zero failures, errors, or skips |
-| PostgreSQL functional and attack scenarios | 15 of 15 passed |
-| Offered load | 20 transfers per second for 120 seconds across 8 accounts |
-| Completed operations | 2,400 distinct operations; zero failures |
-| Completion rate, seconds 10–120 | 20.0091 transactions per second |
-| Whole run, including warmup and drain | 19.9181 transactions per second |
-| End-to-end p95 latency | 709 ms |
+**Measurement: Automated Java verification**
+
+- **Recorded result:** 75 tests in 10 suites; zero failures, errors, or skips
+
+**Measurement: PostgreSQL functional and attack scenarios**
+
+- **Recorded result:** 15 of 15 passed
+
+**Measurement: Offered load**
+
+- **Recorded result:** 20 transfers per second for 120 seconds across 8 accounts
+
+**Measurement: Completed operations**
+
+- **Recorded result:** 2,400 distinct operations; zero failures
+
+**Measurement: Completion rate, seconds 10–120**
+
+- **Recorded result:** 20.0091 transactions per second
+
+**Measurement: Whole run, including warmup and drain**
+
+- **Recorded result:** 19.9181 transactions per second
+
+**Measurement: End-to-end p95 latency**
+
+- **Recorded result:** 709 ms
 
 Completion required the protected terminal result, the exact intended payload and paired postings, and delivery of the durable audit outcome—not merely an HTTP success response. The harness also checked uniqueness, authoritative balances, and bounded backlog. The post-warmup completion window can slightly exceed the offered rate because work crosses measurement boundaries; it must not be confused with whole-run throughput.
 
 The attack scenarios included fabricated records, tampering after verification, missing issued records, deletion before execution, replay, and rollback after an injected debit-stage failure. Two additional real JVM outage experiments tested recovery. With the processor stopped, a request returned HTTP 503 after durable source publication; restart drained the operation, and an identical retry caused no second effect. With the key service stopped, new issuance returned 503 without a receipt, source row, or balance change; retry after restart settled once.
 
-These results are retained in the accompanying [verification evidence](../evidence/local-verification-2026-09-05.json) and [recovery evidence](../evidence/local-recovery-2026-09-05.json). They demonstrate this workload, not maximum capacity, comparative cost, a ten-minute soak, a million-record history, or a production service-level commitment. Database outages, host power loss, point-in-time recovery, and key-service failure during already verified in-flight settlement were not covered by these outage experiments.
+These results are retained in the accompanying [verification evidence](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-verification-2026-09-05.json) and [recovery evidence](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/evidence/local-recovery-2026-09-05.json). They demonstrate this workload, not maximum capacity, comparative cost, a ten-minute soak, a million-record history, or a production service-level commitment. Database outages, host power loss, point-in-time recovery, and key-service failure during already verified in-flight settlement were not covered by these outage experiments.
 
 ## Related approaches and the production boundary
 
@@ -184,4 +211,4 @@ Before production deployment, software custody must be replaced or strengthened 
 
 The useful result is not “a database that cannot be changed.” It is a more precise separation: primary data may be changed, but those changes do not automatically become executable instructions, and independent evidence makes discrepancies inspectable. Established cryptography supplies the building blocks. The engineering task is to preserve their meaning through publication, execution, retries, correction, and audit.
 
-Current topology, dated acceptance results and deployment limits are tracked in the [architecture reference](../reference/architecture.md). Historical measurements remain unchanged and must not be relabeled as benchmarks of a later revision. Neither these tests nor this architecture assert regulatory compliance or legal non-repudiation.
+Current topology, dated acceptance results and deployment limits are tracked in the [architecture reference](https://github.com/ViktorKhudiaiev/demo_security_module/blob/9afdac2fc062241ee646742fa3179a83cc4b0b99/docs/reference/architecture.md). Historical measurements remain unchanged and must not be relabeled as benchmarks of a later revision. Neither these tests nor this architecture assert regulatory compliance or legal non-repudiation.

@@ -8,7 +8,7 @@ For implementation details, start with [Code structure and reading guide](refere
 
 | Folder | Contents |
 |---|---|
-| `article` | Article source, HTML and PDF |
+| `article` | Article source, HTML, PDF, LinkedIn publishing kit, cover image, Medium exports and publishing guide |
 | `presentation` | Current PowerPoint, presenter guide and notes |
 | `reference` | Code structure, protocol, architecture, glossary, requirements and runbook |
 | `evidence` | Dated, sanitized measurements; never relabeled or edited |

@@ -1,0 +1,48 @@
+A payment is approved for Bob.
+Someone changes the recipient to Eve directly in the database.
+
+Would your system stop the payment before the money moves?
+
+Database access should not be payment approval.
+
+That is the idea behind Record Integrity, my independent architecture project.
+
+WHAT THE APPROACH ADDS
+
+1. Check before execution
+Compare the payment instruction with an independently stored, accepted original.
+
+2. Find missing records
+Detect accepted operations that disappear from the main database.
+
+3. Make retries safe
+Prevent repeated processing from creating a second internal debit.
+
+4. Verify the history
+Use signed Merkle checkpoints and independently retained evidence to detect changes to recorded audit history.
+
+WHY THIS IS MORE THAN AN HMAC COLUMN
+
+HMAC and Merkle trees are established tools.
+The engineering work is connecting them to approval, execution and recovery in an existing system.
+
+My aim is to help companies design and integrate these controls.
+
+The Java/PostgreSQL demo is a reference implementation, not a finished production product. Keys and protected execution must stay outside the source database administrator's control.
+
+READ THE ARTICLE
+
+"Verifiable Record Integrity Without a Blockchain"
+
+Read the attached article, or follow the article link shared with this post.
+
+YOUR PERSPECTIVE
+
+If you work on payments, databases or security:
+What would you test first? Where do your existing controls already solve this problem?
+
+---
+
+The views expressed in this article are my own and do not reflect those of my employer.
+
+#DatabaseSecurity #SoftwareArchitecture #ApplicationSecurity

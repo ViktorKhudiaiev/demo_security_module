@@ -18,7 +18,7 @@ from pypdf import PdfReader
 
 ROOT=Path(__file__).resolve().parents[2]
 arguments=argparse.ArgumentParser(description=__doc__)
-arguments.add_argument('--source-revision',required=True,help='Full Git commit containing the published Markdown and evidence')
+arguments.add_argument('--source-revision',required=True,help='Published Git commit for supporting reference links; not necessarily the current article draft')
 source_revision=arguments.parse_args().source_revision
 if not re.fullmatch(r'[0-9a-f]{40}',source_revision):
     raise ValueError('An explicit full source commit is required for PDF reference links')
@@ -116,8 +116,11 @@ for node in parser.root.children:
 doc=SimpleDocTemplate(str(OUT),pagesize=A4,rightMargin=right,leftMargin=left,topMargin=58,bottomMargin=51,title='Verifiable Record Integrity Without a Blockchain',author='Viktor Khudiaiev',subject='Authenticated PostgreSQL execution and independently retained evidence',pageCompression=1)
 doc.build(story,canvasmaker=NumberedCanvas)
 r=PdfReader(str(OUT));text='\n'.join(p.extract_text() for p in r.pages)
-for required in ['20.0091','19.9181','2,400','709','microseconds','five-second','Ed25519','settlement','19.9636','137','Mailpit']:
+for required in ['20.0091','19.9181','2,400','709','microseconds','five-second','Ed25519','settlement','19.9636','137','Mailpit','September 20, 2026']:
     if required not in text:raise RuntimeError('Missing PDF content '+required)
+disclaimer='The views expressed in this article are my own and do not reflect those of my employer.'
+if disclaimer not in ' '.join(r.pages[0].extract_text().split()):
+    raise RuntimeError('The employer disclaimer must be readable on the first PDF page')
 if '[repository URL]' in text:raise RuntimeError('Unresolved repository placeholder')
 links=[annotation.get_object().get('/A',{}).get('/URI','') for page in r.pages for annotation in page.get('/Annots',[])]
 if not any(f'/blob/{source_revision}/docs/evidence/local-verification-2026-09-07.json' in link for link in links):

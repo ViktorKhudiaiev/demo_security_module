@@ -5,6 +5,7 @@ This directory owns the customer-facing documentation generators.
 - `customer-demo.template.html`, `walkthrough-data.mjs`, `build-walkthrough-diagrams.mjs`: current two-database UI and compact sequence.
 - `build-demo.mjs`: builds `docs/index.html` from the sources and selected public evidence.
 - `build-reading-views.mjs`: Markdown article/handbook to offline HTML.
+- `build-publication-copies.mjs`: generates Medium exports and a LinkedIn preview with a plain-text copy button. The canonical article retains the employer disclaimer; the portable copies use a published revision for supporting references.
 - `build-article-pdf.py`: article HTML to the deliverable PDF.
 - `build-deck.mjs`: imports the existing editable PowerPoint template, updates named shapes/native tables and speaker notes, and validates a new candidate. Private renders and receipts belong in ignored `.local/artifact-qa/presentation-notifications-2026-09-08/`.
 - `publish-current-evidence.mjs`: explicit selected-field publication with SHA-256 provenance. Passing and failing results are preserved without changing their acceptance thresholds. It refuses to overwrite published evidence.
@@ -36,11 +37,12 @@ python docs/build/validate-content.py
 
 The reading-view generator uses the existing bundled `marked` dependency. PDF and slide generation additionally require the document runtimes described in their scripts. Reading the generated HTML requires none of these tools.
 
-Generate the PDF after committing its source Markdown and evidence, using
+Generate the PDF using a published supporting-reference revision with
 `python docs/build/build-article-pdf.py --source-revision <full-commit-sha>`.
-Relative article links become immutable GitHub links to that source commit in
+Relative article links become immutable GitHub links to that reference commit in
 the PDF; HTML and Markdown retain their portable local links. The article also
 identifies the separate implementation snapshot used for the notification review.
+The reference revision does not certify that a current article draft is already published. Publication-copy changes do not alter retained measurement dates. Run `node --test docs/build/publication-copies.test.mjs` to check disclaimer preservation, Medium content and clipboard behavior.
 
 `offline.test.mjs` checks local companion links and executes inline walkthrough logic with networking disabled. It also checks that the optional lab stays disconnected when opened from disk. These are source/runtime checks, not a browser rendering claim.
 

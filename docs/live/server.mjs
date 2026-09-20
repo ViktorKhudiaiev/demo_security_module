@@ -12,6 +12,12 @@ const routes=new Map([
  ['/docs/live/client.js','docs/live/client.js'],
  ['/docs/index.html','docs/index.html'],
  ['/docs/article/index.html','docs/article/index.html'],
+ ['/docs/article/linkedin-post.txt','docs/article/linkedin-post.txt'],
+ ['/docs/article/linkedin-post.html','docs/article/linkedin-post.html'],
+ ['/docs/article/assets/record-integrity-cover.png','docs/article/assets/record-integrity-cover.png'],
+ ['/docs/article/medium-article.html','docs/article/medium-article.html'],
+ ['/docs/article/medium-article.md','docs/article/medium-article.md'],
+ ['/docs/article/publishing-guide.md','docs/article/publishing-guide.md'],
  ['/docs/presentation/guide.html','docs/presentation/guide.html'],
  ['/docs/article/article.pdf','docs/article/article.pdf'],
  ['/docs/presentation/demo.pptx','docs/presentation/demo.pptx'],
@@ -86,7 +92,7 @@ export function createLabServer(bridge,{port=PORT,capability=randomBytes(32).toS
    if(redirect){res.writeHead(302,{...common,Location:redirect});res.end();return;}
    const relative=routes.get(req.url);if(!relative){send(res,404,{error:'Not found.'});return;}
    const file=await fs.readFile(path.join(ROOT,relative));const extension=path.extname(relative);
-   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.md':'text/plain; charset=utf-8','.java':'text/plain; charset=utf-8','.mjs':'text/plain; charset=utf-8','.pdf':'application/pdf','.zip':'application/zip','.pptx':'application/vnd.openxmlformats-officedocument.presentationml.presentation'}[extension];
+   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.md':'text/plain; charset=utf-8','.txt':'text/plain; charset=utf-8','.png':'image/png','.java':'text/plain; charset=utf-8','.mjs':'text/plain; charset=utf-8','.pdf':'application/pdf','.zip':'application/zip','.pptx':'application/vnd.openxmlformats-officedocument.presentationml.presentation'}[extension];
    const scriptHashes=extension==='.html'?[...file.toString('utf8').matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>`'sha256-${createHash('sha256').update(m[1]).digest('base64')}'`):[];
    res.writeHead(200,{...common,'Content-Type':mime,'Content-Security-Policy':`default-src 'none'; script-src 'self' ${scriptHashes.join(' ')}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'`});res.end(req.method==='HEAD'?undefined:file);
   }catch{send(res,503,{error:'The local lab could not obtain evidence. No success is inferred.'});}
