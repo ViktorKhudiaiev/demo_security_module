@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {buildPublicationCopies} from './build-publication-copies.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const runtimeModules='C:/Users/vikto/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules';
 const {marked}=await import(pathToFileURL(path.join(runtimeModules,'marked/lib/marked.esm.js')).href);
@@ -18,3 +19,4 @@ for(const [source,output,title] of [['docs/article/article.md','docs/article/ind
  }
  console.log('Built '+output);
 }
+await buildPublicationCopies(root,marked,style);

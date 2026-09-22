@@ -4,6 +4,8 @@ A practical guide for the author, updated September 8, 2026. The latest throughp
 
 ## Current evidence and what not to conflate
 
+For publication, use the [current article PDF](../article/article.pdf), [browser article](../article/index.html) and [publishing guide](../article/publishing-guide.md). The article includes the personal-views disclaimer; the guide provides copy-ready LinkedIn text and a Medium export. Publication remains subject to the author's required clearance.
+
 The [latest load run, September 7](../evidence/local-verification-2026-09-07.json), completed all 2,400 unique transfers correctly with zero transaction failures, but measured **19.9636 steady completed TPS**, below the strict 20 TPS threshold. The load gate and combined report are **FAILED**. Its 92 Java tests, 15 PostgreSQL scenarios, protected accounting, durable audit and normal restoration passed. p95 was 668 ms and p99 791 ms. Do not round the result into a pass or attribute the failure to a cause that was not isolated.
 
 The [historical September 6 final run](../evidence/local-verification-2026-09-06-final.json) passed with 86 Java tests, 15 scenarios and 20.0000 steady completed TPS. The [initial September 6 measurement](../evidence/local-verification-2026-09-06.json), [recovery](../evidence/local-recovery-2026-09-06.json) and Live Lab evidence remain dated examples, not acceptance of later source changes.

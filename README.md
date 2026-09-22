@@ -11,6 +11,7 @@ This is an engineering integration of established cryptographic and database tec
 GitHub displays HTML source rather than executing the page. Download the repository or the [documentation ZIP](docs/downloads/demo-materials.zip), extract it, and open `docs/index.html` locally. Keep the complete `docs` folder together for companion links. The diagrams are explanations, not live database views. External reference links need Internet only when opened.
 
 - [Article](docs/article/index.html) · [PDF](docs/article/article.pdf)
+- [Publishing guide](docs/article/publishing-guide.md) · [LinkedIn publishing kit](docs/article/linkedin-post.html) · [Medium article](docs/article/medium-article.html)
 - [PowerPoint](docs/presentation/demo.pptx) · [Presenter guide](docs/presentation/guide.html) · [Speaker notes](docs/presentation/notes.md)
 - [Code structure and reading guide](docs/reference/code-structure.md)
 - [Architecture and acceptance criteria](docs/reference/architecture.md) · [Exact protocol](docs/reference/protocol.md) · [Glossary](docs/reference/glossary.md)
