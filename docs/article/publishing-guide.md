@@ -1,6 +1,16 @@
 # Publishing the article
 
-Updated September 20, 2026. These files are prepared drafts, not evidence that a publication or employer clearance has occurred.
+Publication status is recorded below. Prepared files alone do not establish publication or employer clearance.
+
+## Zenodo and GitHub Pages
+
+The report is published on Zenodo: [10.5281/zenodo.22886052](https://doi.org/10.5281/zenodo.22886052). The PDF in this repository is the archived report; the HTML and Markdown copies now also link to that published version. The first-publication date is September 20, 2026.
+
+For GitHub Pages, merge the article update, then select **Settings > Pages > Deploy from a branch > master > /docs** and save. `docs/.nojekyll` serves the prebuilt files without Jekyll conversion, preserving the article's links to Markdown references and JSON evidence.
+
+After deployment, verify the article at `https://viktorkhudiaiev.github.io/demo_security_module/article/`, including the disclaimer, the final DOI link, and the linked references. This is the expected address, not confirmation that Pages has been enabled or deployed. The root page is the existing interactive walkthrough.
+
+Rebuild the reading copies with `node docs/build/build-reading-views.mjs`; rebuild the offline archive with `python docs/build/package-materials.py` and run `python docs/build/validate-content.py`. Do not regenerate the archived PDF merely to add the DOI footer to the web article.
 
 ## LinkedIn: text plus PDF
 
