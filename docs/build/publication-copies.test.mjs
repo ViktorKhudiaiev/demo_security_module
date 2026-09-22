@@ -4,7 +4,8 @@ import fs from 'node:fs/promises';
 import vm from 'node:vm';
 import {mediumMarkdown,disclaimer,referenceRevision,linkedinPreview} from './build-publication-copies.mjs';
 
-const read=name=>fs.readFile(new URL('../'+name,import.meta.url),'utf8');
+// Git may check out publication text with CRLF on Windows.
+const read=async name=>(await fs.readFile(new URL('../'+name,import.meta.url),'utf8')).replaceAll('\r\n','\n');
 
 test('current article formats and the LinkedIn text retain the disclaimer',async()=>{
   for(const file of ['article/article.md','article/index.html','article/medium-article.md','article/medium-article.html','article/linkedin-post.txt']){
