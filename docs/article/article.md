@@ -185,3 +185,5 @@ Before production deployment, software custody must be replaced or strengthened 
 The useful result is not “a database that cannot be changed.” It is a more precise separation: primary data may be changed, but those changes do not automatically become executable instructions, and independent evidence makes discrepancies inspectable. Established cryptography supplies the building blocks. The engineering task is to preserve their meaning through publication, execution, retries, correction, and audit.
 
 Current topology, dated acceptance results and deployment limits are tracked in the [architecture reference](../reference/architecture.md). Historical measurements remain unchanged and must not be relabeled as benchmarks of a later revision. Neither these tests nor this architecture assert regulatory compliance or legal non-repudiation.
+
+Archived report: [https://doi.org/10.5281/zenodo.22886052](https://doi.org/10.5281/zenodo.22886052).
